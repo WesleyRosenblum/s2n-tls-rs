@@ -4,7 +4,7 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 1. Project Setup and Infrastructure
 
-- [ ] 1.1 Create Rust module structure within s2n-tls repository
+- [x] 1.1 Create Rust module structure within s2n-tls repository
   - Create a `rust` directory in the s2n-tls repository
   - Set up Cargo.toml with appropriate dependencies
   - Configure build settings and features

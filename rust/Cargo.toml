@@ -1,0 +1,55 @@
+[package]
+name = "s2n-tls-rs"
+version = "0.1.0"
+edition = "2021"
+description = "A memory-safe TLS implementation in Rust compatible with s2n-tls"
+repository = "https://github.com/aws/s2n-tls"
+license = "Apache-2.0"
+authors = ["Amazon Web Services"]
+
+[dependencies]
+# Cryptographic operations
+aws-lc-rs = "1.0.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Memory operations
+zerocopy = "0.6"
+
+# Logging
+log = "0.4"
+
+[dev-dependencies]
+# Testing
+bolero = "0.8"
+insta = "1.28"
+criterion = "0.4"
+
+[features]
+default = []
+fips = ["aws-lc-rs/fips"]
+
+[lib]
+name = "s2n_tls_rs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "s2n-tls-rs-demo"
+path = "src/bin/demo.rs"
+required-features = []
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+debug = false
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.test]
+opt-level = 0
+debug = true
