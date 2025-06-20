@@ -83,13 +83,13 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 4. TLS 1.3 Handshake Layer
 
-- [ ] 4.1 Implement ClientHello/ServerHello messages
+- [x] 4.1 Implement ClientHello/ServerHello messages
   - Create message structures in Rust
   - Implement parsing and serialization
   - Ensure wire format compatibility with s2n-tls
   - _Requirements: 1.1, 3.3_
 
-- [ ] 4.2 Implement extensions handling
+- [x] 4.2 Implement extensions handling
   - Create extension framework
   - Implement required TLS 1.3 extensions
   - Match s2n-tls extension behavior
