@@ -5,6 +5,7 @@
 //! carrying data in chunks of 2^14 bytes or less. These records are then
 //! protected using the current traffic keys and algorithms.
 
+use crate::crypto::{self, AeadAlgorithm, CipherSuite, TrafficKeys};
 use crate::error::{Error, ProtocolError};
 use zerocopy::{AsBytes, FromBytes, Unaligned};
 use std::convert::{TryFrom, TryInto};
@@ -318,6 +319,97 @@ impl TLSCiphertext {
             encrypted_record: record.payload.clone(),
         }
     }
+    
+    /// Encrypt a TLSPlaintext into a TLSCiphertext
+    pub fn encrypt(
+        plaintext: &TLSPlaintext,
+        cipher_suite: CipherSuite,
+        traffic_keys: &TrafficKeys,
+        sequence_number: u64,
+    ) -> Result<Self, Error> {
+        // Create the TLSInnerPlaintext
+        let inner_plaintext = TLSInnerPlaintext::new(
+            plaintext.record_type,
+            plaintext.fragment.clone(),
+            0, // No padding for now
+        );
+        
+        // Encode the inner plaintext
+        let inner_plaintext_bytes = inner_plaintext.encode();
+        
+        // Construct the nonce
+        let nonce = crypto::construct_nonce(&traffic_keys.iv, sequence_number)?;
+        
+        // Construct the additional authenticated data (AAD)
+        // AAD = TLSCiphertext.opaque_type || TLSCiphertext.legacy_record_version || TLSCiphertext.length
+        let mut aad = Vec::with_capacity(5);
+        aad.push(RecordType::ApplicationData as u8); // Always use ApplicationData for TLS 1.3
+        aad.push(plaintext.legacy_record_version.major);
+        aad.push(plaintext.legacy_record_version.minor);
+        
+        // The length is the length of the encrypted content, which we don't know yet
+        // We'll use a placeholder and update it later
+        let ciphertext_len = inner_plaintext_bytes.len() + cipher_suite.aead.tag_size();
+        aad.push((ciphertext_len >> 8) as u8);
+        aad.push(ciphertext_len as u8);
+        
+        // Encrypt the inner plaintext
+        let encrypted_record = crypto::aead_encrypt(
+            cipher_suite.aead,
+            &traffic_keys.key,
+            &nonce,
+            &aad,
+            &inner_plaintext_bytes,
+        )?;
+        
+        // Create the TLSCiphertext
+        Ok(Self::new(
+            RecordType::ApplicationData, // Always use ApplicationData for TLS 1.3
+            plaintext.legacy_record_version,
+            encrypted_record,
+        ))
+    }
+    
+    /// Decrypt a TLSCiphertext into a TLSPlaintext
+    pub fn decrypt(
+        &self,
+        cipher_suite: CipherSuite,
+        traffic_keys: &TrafficKeys,
+        sequence_number: u64,
+    ) -> Result<TLSPlaintext, Error> {
+        // Construct the nonce
+        let nonce = crypto::construct_nonce(&traffic_keys.iv, sequence_number)?;
+        
+        // Construct the additional authenticated data (AAD)
+        // AAD = TLSCiphertext.opaque_type || TLSCiphertext.legacy_record_version || TLSCiphertext.length
+        let mut aad = Vec::with_capacity(5);
+        aad.push(self.opaque_type as u8);
+        aad.push(self.legacy_record_version.major);
+        aad.push(self.legacy_record_version.minor);
+        
+        let ciphertext_len = self.encrypted_record.len();
+        aad.push((ciphertext_len >> 8) as u8);
+        aad.push(ciphertext_len as u8);
+        
+        // Decrypt the encrypted record
+        let inner_plaintext_bytes = crypto::aead_decrypt(
+            cipher_suite.aead,
+            &traffic_keys.key,
+            &nonce,
+            &aad,
+            &self.encrypted_record,
+        )?;
+        
+        // Parse the inner plaintext
+        let inner_plaintext = TLSInnerPlaintext::decode(&inner_plaintext_bytes)?;
+        
+        // Create the TLSPlaintext
+        Ok(TLSPlaintext::new(
+            inner_plaintext.content_type,
+            self.legacy_record_version,
+            inner_plaintext.content,
+        ))
+    }
 }
 
 /// TLS inner plaintext record (used in TLS 1.3)
@@ -381,6 +473,7 @@ impl TLSInnerPlaintext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::cipher_suites::TLS_AES_128_GCM_SHA256;
 
     #[test]
     fn test_record_type_conversion() {
@@ -478,5 +571,88 @@ mod tests {
         assert_eq!(decoded.content_type, RecordType::ApplicationData);
         assert_eq!(decoded.content, vec![1, 2, 3, 4, 5]);
         assert_eq!(decoded.zeros, vec![0, 0, 0]);
+    }
+    
+    #[test]
+    fn test_record_encrypt_decrypt() {
+        // Create test keys
+        let key = vec![0x3f, 0xce, 0x51, 0x60, 0x09, 0xc2, 0x17, 0x27, 0xd0, 0xf2, 0xe4, 0xe8, 0x6e, 0xe4, 0x03, 0xbc];
+        let iv = vec![0x5d, 0x31, 0x3e, 0xb2, 0x67, 0x12, 0x76, 0xee, 0x13, 0x00, 0x0b, 0x30];
+        let traffic_keys = TrafficKeys { key, iv };
+        
+        // Create a plaintext record
+        let plaintext = TLSPlaintext::new(
+            RecordType::ApplicationData,
+            ProtocolVersion::TLS_1_2, // Legacy version for TLS 1.3
+            vec![1, 2, 3, 4, 5],
+        );
+        
+        // Encrypt the record
+        let ciphertext = TLSCiphertext::encrypt(
+            &plaintext,
+            TLS_AES_128_GCM_SHA256,
+            &traffic_keys,
+            0, // Sequence number
+        ).unwrap();
+        
+        // Decrypt the record
+        let decrypted = ciphertext.decrypt(
+            TLS_AES_128_GCM_SHA256,
+            &traffic_keys,
+            0, // Sequence number
+        ).unwrap();
+        
+        // Verify the decrypted record matches the original
+        assert_eq!(decrypted.record_type, plaintext.record_type);
+        assert_eq!(decrypted.legacy_record_version, plaintext.legacy_record_version);
+        assert_eq!(decrypted.fragment, plaintext.fragment);
+    }
+    
+    #[test]
+    fn test_record_encrypt_decrypt_with_sequence() {
+        // Create test keys
+        let key = vec![0x3f, 0xce, 0x51, 0x60, 0x09, 0xc2, 0x17, 0x27, 0xd0, 0xf2, 0xe4, 0xe8, 0x6e, 0xe4, 0x03, 0xbc];
+        let iv = vec![0x5d, 0x31, 0x3e, 0xb2, 0x67, 0x12, 0x76, 0xee, 0x13, 0x00, 0x0b, 0x30];
+        let traffic_keys = TrafficKeys { key, iv };
+        
+        // Create a plaintext record
+        let plaintext = TLSPlaintext::new(
+            RecordType::ApplicationData,
+            ProtocolVersion::TLS_1_2, // Legacy version for TLS 1.3
+            vec![1, 2, 3, 4, 5],
+        );
+        
+        // Test with different sequence numbers
+        for seq in 0..5 {
+            // Encrypt the record
+            let ciphertext = TLSCiphertext::encrypt(
+                &plaintext,
+                TLS_AES_128_GCM_SHA256,
+                &traffic_keys,
+                seq,
+            ).unwrap();
+            
+            // Decrypt with correct sequence number
+            let decrypted = ciphertext.decrypt(
+                TLS_AES_128_GCM_SHA256,
+                &traffic_keys,
+                seq,
+            ).unwrap();
+            
+            // Verify the decrypted record matches the original
+            assert_eq!(decrypted.record_type, plaintext.record_type);
+            assert_eq!(decrypted.legacy_record_version, plaintext.legacy_record_version);
+            assert_eq!(decrypted.fragment, plaintext.fragment);
+            
+            // Decrypt with incorrect sequence number should fail
+            if seq > 0 {
+                let result = ciphertext.decrypt(
+                    TLS_AES_128_GCM_SHA256,
+                    &traffic_keys,
+                    seq - 1,
+                );
+                assert!(result.is_err());
+            }
+        }
     }
 }

@@ -242,8 +242,8 @@ pub enum CryptoError {
     Hmac(String),
     
     /// HKDF errors
-    #[error("HKDF error: {0}")]
-    Hkdf(String),
+    #[error("HKDF error")]
+    HkdfError,
     
     /// Key exchange errors
     #[error("key exchange error: {0}")]
@@ -252,6 +252,30 @@ pub enum CryptoError {
     /// Signature errors
     #[error("signature error: {0}")]
     Signature(String),
+    
+    /// Invalid key size
+    #[error("invalid key size")]
+    InvalidKeySize,
+    
+    /// Invalid nonce size
+    #[error("invalid nonce size")]
+    InvalidNonceSize,
+    
+    /// Invalid secret size
+    #[error("invalid secret size")]
+    InvalidSecretSize,
+    
+    /// Encryption failed
+    #[error("encryption operation failed")]
+    EncryptionFailed,
+    
+    /// Decryption failed
+    #[error("decryption operation failed")]
+    DecryptionFailed,
+    
+    /// Random generation failed
+    #[error("random number generation failed")]
+    RandomGenerationFailed,
     
     /// Other crypto error
     #[error("{0}")]

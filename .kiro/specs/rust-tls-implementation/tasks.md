@@ -33,7 +33,7 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 2. Core Data Structures and Utilities
 
-- [ ] 2.1 Implement basic data structures
+- [x] 2.1 Implement basic data structures
   - Create TLS record structures in Rust
   - Implement TLS message structures
   - _Requirements: 1.1, 4.1_
@@ -57,25 +57,25 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 3. TLS 1.3 Record Layer
 
-- [ ] 3.1 Implement record framing
+- [x] 3.1 Implement record framing
   - Create record header parsing/serialization in Rust
   - Implement record payload handling
   - Ensure wire format compatibility with s2n-tls
   - _Requirements: 1.1, 3.4_
 
-- [ ] 3.2 Implement record encryption/decryption
+- [x] 3.2 Implement record encryption/decryption
   - Integrate with aws-lc-rs for AEAD operations
   - Implement nonce generation and management
   - Ensure cryptographic compatibility with s2n-tls
   - _Requirements: 1.1, 1.4, 3.4_
 
-- [ ] 3.3 Implement record validation
+- [x] 3.3 Implement record validation
   - Implement length and type validation
   - Implement padding validation
   - Match s2n-tls validation behavior
   - _Requirements: 1.1, 3.4_
 
-- [ ] 3.4 Create record layer tests
+- [x] 3.4 Create record layer tests
   - Write unit tests for record operations
   - Create property tests for record serialization/deserialization
   - Implement interoperability tests with s2n-tls C implementation
