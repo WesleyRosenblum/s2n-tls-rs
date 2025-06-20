@@ -5,7 +5,7 @@
 // Duvet annotations are added directly to the source code
 // Example annotation:
 //
-// //= https://tools.ietf.org/html/rfc8446#section-4.1.2
+// //= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
 // //# struct {
 // //#   ProtocolVersion legacy_version = 0x0303;    /* TLS v1.2 */
 // //#   Random random;
