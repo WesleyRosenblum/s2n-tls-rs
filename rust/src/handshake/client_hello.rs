@@ -76,7 +76,7 @@ impl ClientHello {
     //# (i.e., a zero-valued single byte length field).
     pub fn set_legacy_session_id(&mut self, session_id: Vec<u8>) -> Result<(), Error> {
         if session_id.len() > 32 {
-            return Err(Error::Protocol("Session ID too long".into()));
+            return Err(Error::protocol(crate::error::ProtocolError::Other("Session ID too long".into())));
         }
         self.legacy_session_id = session_id;
         Ok(())

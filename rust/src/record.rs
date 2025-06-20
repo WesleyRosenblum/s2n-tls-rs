@@ -18,7 +18,7 @@ impl RecordType {
             21 => Ok(RecordType::Alert),
             22 => Ok(RecordType::Handshake),
             23 => Ok(RecordType::ApplicationData),
-            _ => Err(Error::Protocol(format!("Invalid record type: {}", value))),
+            _ => Err(Error::protocol(crate::error::ProtocolError::Other(format!("Invalid record type: {}", value)))),
         }
     }
 }
@@ -66,7 +66,7 @@ impl Record {
     
     pub fn decode(buffer: &[u8]) -> Result<Self, Error> {
         if buffer.len() < 5 {
-            return Err(Error::Protocol("Record too short".into()));
+            return Err(Error::protocol(crate::error::ProtocolError::Other("Record too short".into())));
         }
         
         let record_type = RecordType::from_u8(buffer[0])?;
@@ -77,7 +77,7 @@ impl Record {
         
         let length = ((buffer[3] as usize) << 8) | (buffer[4] as usize);
         if buffer.len() < 5 + length {
-            return Err(Error::Protocol("Record payload too short".into()));
+            return Err(Error::protocol(crate::error::ProtocolError::Other("Record payload too short".into())));
         }
         
         let payload = buffer[5..5 + length].to_vec();

@@ -51,7 +51,7 @@ impl HandshakeMessage {
     pub fn decode(buffer: &[u8]) -> Result<Self, Error> {
         // This is a placeholder implementation
         if buffer.is_empty() {
-            return Err(Error::Protocol("Empty buffer".into()));
+            return Err(Error::protocol(crate::error::ProtocolError::Other("Empty buffer".into())));
         }
         
         match buffer[0] {
@@ -72,7 +72,7 @@ impl HandshakeMessage {
                     extensions: Vec::new(),
                 }))
             }
-            _ => Err(Error::Protocol(format!("Unknown handshake message type: {}", buffer[0]))),
+            _ => Err(Error::protocol(crate::error::ProtocolError::Other(format!("Unknown handshake message type: {}", buffer[0])))),
         }
     }
 }

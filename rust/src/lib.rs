@@ -13,6 +13,10 @@ pub use api::{Config, Connection, BlockedStatus, ConnectionMode};
 // Internal modules
 mod crypto;
 mod error;
+#[cfg(any(test, feature = "testing"))]
+pub mod ffi;
+#[cfg(not(any(test, feature = "testing")))]
+mod ffi;
 mod io;
 mod state;
 mod tls;
@@ -29,7 +33,8 @@ mod handshake;
 mod record;
 
 // Re-export error types
-pub use error::Error;
+pub use error::{Error, ErrorType, BlockedError, ProtocolError, CryptoError, ConfigError, InternalError, UsageError, HashError, CertificateError, ExtensionError, KeyExchangeError};
+
 
 /// Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
