@@ -8,3 +8,5 @@ mod handshake_tests;
 mod crypto_tests;
 mod error_tests;
 mod ffi_tests;
+mod key_exchange_tests;
+mod key_schedule_tests;

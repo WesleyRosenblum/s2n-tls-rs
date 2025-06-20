@@ -95,13 +95,13 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Match s2n-tls extension behavior
   - _Requirements: 1.1, 3.3_
 
-- [ ] 4.3 Implement key exchange
+- [x] 4.3 Implement key exchange
   - Integrate with aws-lc-rs for key exchange operations
   - Implement key share generation and processing
   - Ensure compatibility with s2n-tls key exchange
   - _Requirements: 1.1, 1.4, 3.3_
 
-- [ ] 4.4 Implement key derivation
+- [x] 4.4 Implement key derivation
   - Implement TLS 1.3 key schedule
   - Integrate with aws-lc-rs for HKDF operations
   - Match s2n-tls key derivation behavior

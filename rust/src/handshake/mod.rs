@@ -4,9 +4,13 @@
 
 pub mod client_hello;
 pub mod server_hello;
+pub mod key_exchange;
+pub mod key_schedule;
 
 pub use client_hello::{ClientHello, Extension, ExtensionType, HandshakeType};
 pub use server_hello::ServerHello;
+pub use key_exchange::{NamedGroup, KeyShareEntry, ClientKeyShare, ServerKeyShare, KeyPair};
+pub use key_schedule::KeySchedule;
 
 use crate::buffer::Buffer;
 use crate::error::Error;
