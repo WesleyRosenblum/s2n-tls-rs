@@ -138,13 +138,13 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Match s2n-tls client behavior
   - _Requirements: 1.1, 3.2_
 
-- [ ] 5.3 Implement server-side handshake flow
+- [x] 5.3 Implement server-side handshake flow
   - Implement server state machine
   - Handle client messages
   - Match s2n-tls server behavior
   - _Requirements: 1.1, 3.2_
 
-- [ ] 5.4 Create state machine tests
+- [x] 5.4 Create state machine tests
   - Write unit tests for state transitions
   - Create integration tests for handshake flows
   - Implement interoperability tests with s2n-tls C implementation

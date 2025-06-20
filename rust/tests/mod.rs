@@ -1,9 +1,7 @@
-// Main test module
-// This file organizes all the integration tests
+// Test module
+// Contains all tests for the library
 
-// Import test modules
-mod unit;
-mod property;
-mod snapshot;
-mod compliance;
-mod interop;
+pub mod unit;
+pub mod property;
+pub mod snapshot;
+pub mod integration;

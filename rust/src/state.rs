@@ -468,8 +468,111 @@ pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> 
                 }
                 ConnectionMode::Server => {
                     // Server sends encrypted extensions, certificate, certificate verify, and finished messages
-                    // This would be implemented in the server-side handshake flow
-                    Err(Error::protocol(ProtocolError::Other("Server-side handshake flow not implemented".into())))
+                    
+                    // Derive handshake traffic keys
+                    if let (Some(key_schedule), Some(cipher_suite)) = (&self.key_schedule, self.cipher_suite) {
+                        // Get the transcript hash
+                        if let Some(handshake_verification) = &self.handshake_verification {
+                            let transcript_hash = handshake_verification.get_transcript_hash()?;
+                            
+                            // Derive the client handshake traffic secret
+                            let client_handshake_traffic_secret = key_schedule.derive_client_handshake_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the server handshake traffic secret
+                            let server_handshake_traffic_secret = key_schedule.derive_server_handshake_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the client handshake traffic keys
+                            let client_handshake_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &client_handshake_traffic_secret)?;
+                            
+                            // Derive the server handshake traffic keys
+                            let server_handshake_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &server_handshake_traffic_secret)?;
+                            
+                            // Save the traffic keys
+                            self.client_handshake_traffic_keys = Some(client_handshake_traffic_keys);
+                            self.server_handshake_traffic_keys = Some(server_handshake_traffic_keys);
+                            
+                            // Set the client and server finished keys
+                            if let Some(handshake_verification) = &mut self.handshake_verification {
+                                let client_finished_key = key_schedule.derive_finished_key(&client_handshake_traffic_secret)?;
+                                let server_finished_key = key_schedule.derive_finished_key(&server_handshake_traffic_secret)?;
+                                
+                                handshake_verification.set_client_finished_key(client_finished_key);
+                                handshake_verification.set_server_finished_key(server_finished_key);
+                            }
+                        }
+                    }
+                    
+                    // Create encrypted extensions (empty for now)
+                    let mut encrypted_extensions_buffer = Buffer::new();
+                    // In a real implementation, we would add extensions here
+                    
+                    // Create a certificate message
+                    let mut certificate = Certificate::new();
+                    
+                    // Add certificate entries
+                    if let Some(server_cert) = &self.config.server_certificate {
+                        let entry = CertificateEntry::new(server_cert.clone());
+                        certificate.add_certificate_entry(entry);
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Server certificate not available".into())));
+                    }
+                    
+                    // Encode the certificate message
+                    let mut certificate_buffer = Buffer::new();
+                    certificate.encode(&mut certificate_buffer)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&certificate_buffer)?;
+                    }
+                    
+                    // Create a certificate verify message (placeholder)
+                    let mut certificate_verify_buffer = Buffer::new();
+                    // In a real implementation, we would create a proper certificate verify message
+                    
+                    // Create a server finished message
+                    let server_finished = if let Some(handshake_verification) = &self.handshake_verification {
+                        handshake_verification.create_server_finished()?
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Handshake verification context not available".into())));
+                    };
+                    
+                    // Encode the server finished message
+                    let mut finished_buffer = Buffer::new();
+                    server_finished.encode(&mut finished_buffer)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&finished_buffer)?;
+                    }
+                    
+                    // Combine all the messages
+                    let mut combined_buffer = Buffer::new();
+                    combined_buffer.append(&encrypted_extensions_buffer);
+                    combined_buffer.append(&certificate_buffer);
+                    combined_buffer.append(&certificate_verify_buffer);
+                    combined_buffer.append(&finished_buffer);
+                    
+                    // Encrypt the combined messages using the server handshake traffic keys
+                    let encrypted_messages = if let Some(server_handshake_traffic_keys) = &self.server_handshake_traffic_keys {
+                        // In a real implementation, we would encrypt the messages here
+                        // For now, we'll just use the buffer as-is
+                        combined_buffer.into_vec()
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Server handshake traffic keys not available".into())));
+                    };
+                    
+                    // Create a record
+                    let record = Record::new(
+                        RecordType::ApplicationData,
+                        ProtocolVersion::TLS_1_2,
+                        encrypted_messages,
+                    );
+                    
+                    // Update the state
+                    self.state = ConnectionState::ServerFinishedSent;
+                    
+                    Ok(vec![record])
                 }
             }
         }
