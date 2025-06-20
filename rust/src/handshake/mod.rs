@@ -6,11 +6,15 @@ pub mod client_hello;
 pub mod server_hello;
 pub mod key_exchange;
 pub mod key_schedule;
+pub mod certificate;
+pub mod finished;
 
 pub use client_hello::{ClientHello, Extension, ExtensionType, HandshakeType};
 pub use server_hello::ServerHello;
 pub use key_exchange::{NamedGroup, KeyShareEntry, ClientKeyShare, ServerKeyShare, KeyPair};
 pub use key_schedule::KeySchedule;
+pub use certificate::{Certificate, CertificateEntry, CertificateVerificationContext};
+pub use finished::{Finished, HandshakeVerificationContext, TranscriptHashContext};
 
 use crate::buffer::Buffer;
 use crate::error::Error;

@@ -107,19 +107,19 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Match s2n-tls key derivation behavior
   - _Requirements: 1.1, 1.4, 3.3_
 
-- [ ] 4.5 Implement certificate validation
+- [x] 4.5 Implement certificate validation
   - Integrate with aws-lc-rs for certificate operations
   - Implement certificate chain validation
   - Ensure compatibility with s2n-tls certificate validation
   - _Requirements: 1.1, 1.4, 3.3_
 
-- [ ] 4.6 Implement handshake completion
+- [x] 4.6 Implement handshake completion
   - Implement Finished message handling
   - Implement handshake verification
   - Match s2n-tls handshake completion behavior
   - _Requirements: 1.1, 3.3_
 
-- [ ] 4.7 Create handshake layer tests
+- [x] 4.7 Create handshake layer tests
   - Write unit tests for handshake operations
   - Create property tests for handshake message serialization/deserialization
   - Implement interoperability tests with s2n-tls C implementation
