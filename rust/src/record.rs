@@ -1,84 +1,91 @@
-//! TLS record layer implementation
-//!
-//! This module implements the TLS record layer as specified in RFC 8446.
-//! It handles record framing, encryption, and decryption.
+// Record module
+// Contains the TLS record protocol implementation
 
 use crate::error::Error;
-use crate::io::IoProvider;
 
-/// TLS record type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RecordType {
-    /// Invalid record type
-    Invalid = 0,
-    /// ChangeCipherSpec record type
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RecordType {
     ChangeCipherSpec = 20,
-    /// Alert record type
     Alert = 21,
-    /// Handshake record type
     Handshake = 22,
-    /// ApplicationData record type
     ApplicationData = 23,
 }
 
-impl TryFrom<u8> for RecordType {
-    type Error = Error;
-    
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+impl RecordType {
+    pub fn from_u8(value: u8) -> Result<Self, Error> {
         match value {
             20 => Ok(RecordType::ChangeCipherSpec),
             21 => Ok(RecordType::Alert),
             22 => Ok(RecordType::Handshake),
             23 => Ok(RecordType::ApplicationData),
-            _ => Err(Error::Protocol(crate::error::ProtocolError::InvalidRecordType(value))),
+            _ => Err(Error::Protocol(format!("Invalid record type: {}", value))),
         }
     }
 }
 
-/// TLS protocol version
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ProtocolVersion {
-    /// Major version
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ProtocolVersion {
     pub major: u8,
-    /// Minor version
     pub minor: u8,
 }
 
-/// TLS record
-#[derive(Debug)]
-pub(crate) struct Record {
-    /// Record type
+#[derive(Debug, Clone, PartialEq)]
+pub struct Record {
     pub record_type: RecordType,
-    /// Protocol version
     pub version: ProtocolVersion,
-    /// Record payload
     pub payload: Vec<u8>,
 }
 
-/// TLS record layer
-pub(crate) struct RecordLayer {
-    // Fields will be added as needed
-}
-
-impl RecordLayer {
-    /// Create a new record layer
-    pub fn new() -> Self {
-        Self {}
+impl Record {
+    pub fn new(record_type: RecordType, version: ProtocolVersion, payload: Vec<u8>) -> Self {
+        Self {
+            record_type,
+            version,
+            payload,
+        }
     }
     
-    /// Read a record from the I/O provider
-    pub fn read_record(&mut self, io: &mut dyn IoProvider) -> Result<Record, Error> {
-        // Implementation will be added
-        Ok(Record {
-            record_type: RecordType::Handshake,
-            version: ProtocolVersion { major: 3, minor: 3 },
-            payload: Vec::new(),
+    pub fn encode(&self, buffer: &mut Vec<u8>) -> Result<(), Error> {
+        // Record type
+        buffer.push(self.record_type as u8);
+        
+        // Protocol version
+        buffer.push(self.version.major);
+        buffer.push(self.version.minor);
+        
+        // Length (2 bytes, big-endian)
+        let length = self.payload.len() as u16;
+        buffer.push((length >> 8) as u8);
+        buffer.push(length as u8);
+        
+        // Payload
+        buffer.extend_from_slice(&self.payload);
+        
+        Ok(())
+    }
+    
+    pub fn decode(buffer: &[u8]) -> Result<Self, Error> {
+        if buffer.len() < 5 {
+            return Err(Error::Protocol("Record too short".into()));
+        }
+        
+        let record_type = RecordType::from_u8(buffer[0])?;
+        let version = ProtocolVersion {
+            major: buffer[1],
+            minor: buffer[2],
+        };
+        
+        let length = ((buffer[3] as usize) << 8) | (buffer[4] as usize);
+        if buffer.len() < 5 + length {
+            return Err(Error::Protocol("Record payload too short".into()));
+        }
+        
+        let payload = buffer[5..5 + length].to_vec();
+        
+        Ok(Self {
+            record_type,
+            version,
+            payload,
         })
-    }
-    
-    /// Write a record to the I/O provider
-    pub fn write_record(&mut self, record: &Record, io: &mut dyn IoProvider) -> Result<usize, Error> {
-        // Implementation will be added
-        Ok(0)
     }
 }

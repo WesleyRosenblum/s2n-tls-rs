@@ -1,33 +1,18 @@
-//! Cryptographic operations for the s2n-tls-rs library
-//!
-//! This module provides cryptographic operations for the s2n-tls-rs library.
-//! It uses aws-lc-rs for cryptographic operations.
+// Crypto module
+// Contains cryptographic operations for the TLS implementation
 
-use crate::error::{CryptoError, Error};
+use crate::error::Error;
 
 /// Initialize the cryptographic library
-pub(crate) fn init() -> Result<(), Error> {
+pub fn init() -> Result<(), Error> {
     // Initialize aws-lc-rs
-    // This is a placeholder for now
+    // This is a placeholder implementation
     Ok(())
 }
 
 /// Clean up the cryptographic library
-pub(crate) fn cleanup() -> Result<(), Error> {
+pub fn cleanup() -> Result<(), Error> {
     // Clean up aws-lc-rs
-    // This is a placeholder for now
+    // This is a placeholder implementation
     Ok(())
-}
-
-/// Cryptographic context for TLS operations
-pub(crate) struct CryptoContext {
-    // Fields will be added as needed
-}
-
-impl CryptoContext {
-    /// Create a new cryptographic context
-    pub fn new() -> Result<Self, Error> {
-        // Implementation will be added
-        Ok(Self {})
-    }
 }

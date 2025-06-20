@@ -50,6 +50,35 @@ cd rust
 cargo test
 ```
 
+The project includes several types of tests:
+
+- **Unit Tests**: Test individual components in isolation
+- **Property Tests**: Test properties of components with randomly generated inputs using Bolero
+- **Snapshot Tests**: Test that output matches expected snapshots using insta
+- **Compliance Tests**: Ensure compliance with TLS specifications using Duvet
+- **Interoperability Tests**: Verify interoperability with the C s2n-tls implementation
+
+For more information about the testing infrastructure, see [tests/README.md](tests/README.md).
+
+#### Running Specific Test Types
+
+```bash
+# Run unit tests
+make test-unit
+
+# Run property tests
+make test-property
+
+# Run snapshot tests
+make test-snapshot
+
+# Run interoperability tests
+make test-interop
+
+# Generate compliance report
+make compliance-report
+```
+
 ### Building with FIPS Support
 
 To build with FIPS support, enable the `fips` feature:

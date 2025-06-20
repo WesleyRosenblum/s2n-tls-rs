@@ -11,7 +11,7 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Document how to build the Rust implementation using standard Cargo tools
   - _Requirements: 1.1, 1.5_
 
-- [ ] 1.2 Set up testing infrastructure
+- [x] 1.2 Set up testing infrastructure
   - Configure unit tests
   - Set up property testing with Bolero
   - Configure snapshot testing with insta
