@@ -22,6 +22,7 @@ mod io;
 mod state;
 mod tls;
 mod utils;
+pub mod compliance;
 
 // Re-export modules for testing
 #[cfg(any(test, feature = "testing"))]
