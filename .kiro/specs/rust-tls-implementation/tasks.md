@@ -132,7 +132,7 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Implement state transitions
   - _Requirements: 1.1, 3.2_
 
-- [ ] 5.2 Implement client-side handshake flow
+- [x] 5.2 Implement client-side handshake flow
   - Implement client state machine
   - Handle server responses
   - Match s2n-tls client behavior

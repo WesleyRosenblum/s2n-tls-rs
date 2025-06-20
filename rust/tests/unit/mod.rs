@@ -13,3 +13,4 @@ mod key_schedule_tests;
 mod certificate_tests;
 mod finished_tests;
 mod state_tests;
+mod client_handshake_tests;

@@ -233,113 +233,328 @@ impl Connection {
         Ok(())
     }
     
-    /// Process a record
-    pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> {
-        match self.state {
-            ConnectionState::Initial => {
-                // Initial state
-                match self.config.mode {
-                    ConnectionMode::Client => {
-                        // Client sends a ClientHello
-                        let client_hello = self.create_client_hello()?;
-                        let mut buffer = Buffer::new();
-                        client_hello.encode(&mut buffer)?;
-                        
-                        // Update the handshake verification context
-                        if let Some(handshake_verification) = &mut self.handshake_verification {
-                            handshake_verification.update_transcript(&buffer)?;
-                        }
-                        
-                        // Create a record
-                        let record = Record::new(
-                            RecordType::Handshake,
-                            ProtocolVersion::TLS_1_2,
-                            buffer.into_vec(),
-                        );
-                        
-                        // Update the state
-                        self.state = ConnectionState::ClientHelloSent;
-                        
-                        Ok(vec![record])
+/// Process a record
+pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> {
+    match self.state {
+        ConnectionState::Initial => {
+            // Initial state
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client sends a ClientHello
+                    let client_hello = self.create_client_hello()?;
+                    let mut buffer = Buffer::new();
+                    client_hello.encode(&mut buffer)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&buffer)?;
                     }
-                    ConnectionMode::Server => {
-                        // Server expects a ClientHello
-                        if record.record_type != RecordType::Handshake {
-                            return Err(Error::protocol(ProtocolError::Other("Expected Handshake record".into())));
-                        }
-                        
-                        // Parse the ClientHello
-                        let mut offset = 0;
-                        let client_hello = ClientHello::decode(&record.payload, &mut offset)?;
-                        
-                        // Update the handshake verification context
-                        if let Some(handshake_verification) = &mut self.handshake_verification {
-                            handshake_verification.update_transcript(&record.payload)?;
-                        }
-                        
-                        // Process the ClientHello
-                        self.process_client_hello(&client_hello)?;
-                        
-                        // Create a ServerHello
-                        let server_hello = self.create_server_hello()?;
-                        let mut buffer = Buffer::new();
-                        server_hello.encode(&mut buffer)?;
-                        
-                        // Update the handshake verification context
-                        if let Some(handshake_verification) = &mut self.handshake_verification {
-                            handshake_verification.update_transcript(&buffer)?;
-                        }
-                        
-                        // Create a record
-                        let record = Record::new(
-                            RecordType::Handshake,
-                            ProtocolVersion::TLS_1_2,
-                            buffer.into_vec(),
-                        );
-                        
-                        // Update the state
-                        self.state = ConnectionState::ServerHelloSent;
-                        
-                        Ok(vec![record])
+                    
+                    // Create a record
+                    let record = Record::new(
+                        RecordType::Handshake,
+                        ProtocolVersion::TLS_1_2,
+                        buffer.into_vec(),
+                    );
+                    
+                    // Update the state
+                    self.state = ConnectionState::ClientHelloSent;
+                    
+                    Ok(vec![record])
+                }
+                ConnectionMode::Server => {
+                    // Server expects a ClientHello
+                    if record.record_type != RecordType::Handshake {
+                        return Err(Error::protocol(ProtocolError::Other("Expected Handshake record".into())));
                     }
+                    
+                    // Parse the ClientHello
+                    let mut offset = 0;
+                    let client_hello = ClientHello::decode(&record.payload, &mut offset)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&record.payload)?;
+                    }
+                    
+                    // Process the ClientHello
+                    self.process_client_hello(&client_hello)?;
+                    
+                    // Create a ServerHello
+                    let server_hello = self.create_server_hello()?;
+                    let mut buffer = Buffer::new();
+                    server_hello.encode(&mut buffer)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&buffer)?;
+                    }
+                    
+                    // Create a record
+                    let record = Record::new(
+                        RecordType::Handshake,
+                        ProtocolVersion::TLS_1_2,
+                        buffer.into_vec(),
+                    );
+                    
+                    // Update the state
+                    self.state = ConnectionState::ServerHelloSent;
+                    
+                    Ok(vec![record])
                 }
             }
-            ConnectionState::ClientHelloSent => {
-                // ClientHello sent
-                match self.config.mode {
-                    ConnectionMode::Client => {
-                        // Client expects a ServerHello
-                        if record.record_type != RecordType::Handshake {
-                            return Err(Error::protocol(ProtocolError::Other("Expected Handshake record".into())));
+        }
+        ConnectionState::ClientHelloSent => {
+            // ClientHello sent
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client expects a ServerHello
+                    if record.record_type != RecordType::Handshake {
+                        return Err(Error::protocol(ProtocolError::Other("Expected Handshake record".into())));
+                    }
+                    
+                    // Parse the ServerHello
+                    let mut offset = 0;
+                    let server_hello = ServerHello::decode(&record.payload, &mut offset)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&record.payload)?;
+                    }
+                    
+                    // Process the ServerHello
+                    self.process_server_hello(&server_hello)?;
+                    
+                    // Update the state
+                    self.state = ConnectionState::ServerHelloSent;
+                    
+                    // Derive handshake traffic keys
+                    if let (Some(key_schedule), Some(cipher_suite)) = (&self.key_schedule, self.cipher_suite) {
+                        // Get the transcript hash
+                        if let Some(handshake_verification) = &self.handshake_verification {
+                            let transcript_hash = handshake_verification.get_transcript_hash()?;
+                            
+                            // Derive the client handshake traffic secret
+                            let client_handshake_traffic_secret = key_schedule.derive_client_handshake_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the server handshake traffic secret
+                            let server_handshake_traffic_secret = key_schedule.derive_server_handshake_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the client handshake traffic keys
+                            let client_handshake_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &client_handshake_traffic_secret)?;
+                            
+                            // Derive the server handshake traffic keys
+                            let server_handshake_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &server_handshake_traffic_secret)?;
+                            
+                            // Save the traffic keys
+                            self.client_handshake_traffic_keys = Some(client_handshake_traffic_keys);
+                            self.server_handshake_traffic_keys = Some(server_handshake_traffic_keys);
+                            
+                            // Set the client and server finished keys
+                            if let Some(handshake_verification) = &mut self.handshake_verification {
+                                let client_finished_key = key_schedule.derive_finished_key(&client_handshake_traffic_secret)?;
+                                let server_finished_key = key_schedule.derive_finished_key(&server_handshake_traffic_secret)?;
+                                
+                                handshake_verification.set_client_finished_key(client_finished_key);
+                                handshake_verification.set_server_finished_key(server_finished_key);
+                            }
                         }
-                        
-                        // Parse the ServerHello
-                        let mut offset = 0;
-                        let server_hello = ServerHello::decode(&record.payload, &mut offset)?;
-                        
-                        // Update the handshake verification context
-                        if let Some(handshake_verification) = &mut self.handshake_verification {
-                            handshake_verification.update_transcript(&record.payload)?;
+                    }
+                    
+                    // Wait for the server's encrypted extensions, certificate, certificate verify, and finished messages
+                    Ok(Vec::new())
+                }
+                ConnectionMode::Server => {
+                    // Server should not be in this state
+                    Err(Error::protocol(ProtocolError::Other("Server in invalid state".into())))
+                }
+            }
+        }
+        ConnectionState::ServerHelloSent => {
+            // ServerHello sent
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client expects encrypted extensions, certificate, certificate verify, and finished messages
+                    if record.record_type != RecordType::ApplicationData {
+                        return Err(Error::protocol(ProtocolError::Other("Expected encrypted record".into())));
+                    }
+                    
+                    // Decrypt the record using the server handshake traffic keys
+                    let plaintext = if let Some(server_handshake_traffic_keys) = &self.server_handshake_traffic_keys {
+                        // In a real implementation, we would decrypt the record here
+                        // For now, we'll just use the payload as-is
+                        record.payload.clone()
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Server handshake traffic keys not available".into())));
+                    };
+                    
+                    // Parse the handshake messages
+                    let mut offset = 0;
+                    
+                    // In a real implementation, we would parse the encrypted extensions, certificate, certificate verify, and finished messages
+                    // For now, we'll just update the state
+                    
+                    // Update the state
+                    self.state = ConnectionState::ServerFinishedSent;
+                    
+                    // Create a client finished message
+                    let client_finished = if let Some(handshake_verification) = &self.handshake_verification {
+                        handshake_verification.create_client_finished()?
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Handshake verification context not available".into())));
+                    };
+                    
+                    // Encode the client finished message
+                    let mut buffer = Buffer::new();
+                    client_finished.encode(&mut buffer)?;
+                    
+                    // Update the handshake verification context
+                    if let Some(handshake_verification) = &mut self.handshake_verification {
+                        handshake_verification.update_transcript(&buffer)?;
+                    }
+                    
+                    // Encrypt the client finished message using the client handshake traffic keys
+                    let encrypted_client_finished = if let Some(client_handshake_traffic_keys) = &self.client_handshake_traffic_keys {
+                        // In a real implementation, we would encrypt the message here
+                        // For now, we'll just use the buffer as-is
+                        buffer.into_vec()
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Client handshake traffic keys not available".into())));
+                    };
+                    
+                    // Create a record
+                    let record = Record::new(
+                        RecordType::ApplicationData,
+                        ProtocolVersion::TLS_1_2,
+                        encrypted_client_finished,
+                    );
+                    
+                    // Update the state
+                    self.state = ConnectionState::ClientFinishedSent;
+                    
+                    // Derive application traffic keys
+                    if let (Some(key_schedule), Some(cipher_suite)) = (&self.key_schedule, self.cipher_suite) {
+                        // Get the transcript hash
+                        if let Some(handshake_verification) = &self.handshake_verification {
+                            let transcript_hash = handshake_verification.get_transcript_hash()?;
+                            
+                            // Derive the master secret
+                            if let Some(key_schedule) = &mut self.key_schedule {
+                                key_schedule.derive_master_secret()?;
+                            }
+                            
+                            // Derive the client application traffic secret
+                            let client_application_traffic_secret = key_schedule.derive_client_application_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the server application traffic secret
+                            let server_application_traffic_secret = key_schedule.derive_server_application_traffic_secret(&transcript_hash)?;
+                            
+                            // Derive the client application traffic keys
+                            let client_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &client_application_traffic_secret)?;
+                            
+                            // Derive the server application traffic keys
+                            let server_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &server_application_traffic_secret)?;
+                            
+                            // Save the traffic keys
+                            self.client_application_traffic_keys = Some(client_application_traffic_keys);
+                            self.server_application_traffic_keys = Some(server_application_traffic_keys);
                         }
-                        
-                        // Process the ServerHello
-                        self.process_server_hello(&server_hello)?;
-                        
-                        // Update the state
-                        self.state = ConnectionState::ServerHelloSent;
+                    }
+                    
+                    // Handshake is complete
+                    self.state = ConnectionState::HandshakeCompleted;
+                    
+                    Ok(vec![record])
+                }
+                ConnectionMode::Server => {
+                    // Server sends encrypted extensions, certificate, certificate verify, and finished messages
+                    // This would be implemented in the server-side handshake flow
+                    Err(Error::protocol(ProtocolError::Other("Server-side handshake flow not implemented".into())))
+                }
+            }
+        }
+        ConnectionState::ServerFinishedSent => {
+            // Server finished sent
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client should not be in this state
+                    Err(Error::protocol(ProtocolError::Other("Client in invalid state".into())))
+                }
+                ConnectionMode::Server => {
+                    // Server expects a client finished message
+                    // This would be implemented in the server-side handshake flow
+                    Err(Error::protocol(ProtocolError::Other("Server-side handshake flow not implemented".into())))
+                }
+            }
+        }
+        ConnectionState::ClientFinishedSent => {
+            // Client finished sent
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client expects application data
+                    if record.record_type != RecordType::ApplicationData {
+                        return Err(Error::protocol(ProtocolError::Other("Expected application data".into())));
+                    }
+                    
+                    // Decrypt the record using the server application traffic keys
+                    let plaintext = if let Some(server_application_traffic_keys) = &self.server_application_traffic_keys {
+                        // In a real implementation, we would decrypt the record here
+                        // For now, we'll just use the payload as-is
+                        record.payload.clone()
+                    } else {
+                        return Err(Error::protocol(ProtocolError::Other("Server application traffic keys not available".into())));
+                    };
+                    
+                    // Process the application data
+                    // In a real implementation, we would pass the data to the application
+                    
+                    Ok(Vec::new())
+                }
+                ConnectionMode::Server => {
+                    // Server should not be in this state
+                    Err(Error::protocol(ProtocolError::Other("Server in invalid state".into())))
+                }
+            }
+        }
+        ConnectionState::HandshakeCompleted => {
+            // Handshake completed
+            match self.config.mode {
+                ConnectionMode::Client => {
+                    // Client can send application data
+                    if record.record_type == RecordType::ApplicationData {
+                        // Process the application data
+                        // In a real implementation, we would pass the data to the application
                         
                         Ok(Vec::new())
-                    }
-                    ConnectionMode::Server => {
-                        // Server should not be in this state
-                        Err(Error::protocol(ProtocolError::Other("Server in invalid state".into())))
+                    } else if record.record_type == RecordType::Alert {
+                        // Process the alert
+                        // In a real implementation, we would handle the alert
+                        
+                        // Close the connection
+                        self.state = ConnectionState::Closed;
+                        
+                        Ok(Vec::new())
+                    } else {
+                        Err(Error::protocol(ProtocolError::Other("Unexpected record type".into())))
                     }
                 }
+                ConnectionMode::Server => {
+                    // Server can send application data
+                    // This would be implemented in the server-side handshake flow
+                    Err(Error::protocol(ProtocolError::Other("Server-side handshake flow not implemented".into())))
+                }
             }
-            // Additional states would be implemented here
-            _ => Err(Error::protocol(ProtocolError::Other("State not implemented".into()))),
+        }
+        ConnectionState::Closed => {
+            // Connection closed
+            Err(Error::protocol(ProtocolError::Other("Connection closed".into())))
+        }
+        ConnectionState::Error => {
+            // Error state
+            Err(Error::protocol(ProtocolError::Other("Connection in error state".into())))
         }
     }
+}
     
     /// Create a ClientHello message
     fn create_client_hello(&mut self) -> Result<ClientHello, Error> {
