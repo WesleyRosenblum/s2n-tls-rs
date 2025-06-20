@@ -13,12 +13,20 @@ pub use api::{Config, Connection, BlockedStatus, ConnectionMode};
 // Internal modules
 mod crypto;
 mod error;
-mod handshake;
 mod io;
-mod record;
 mod state;
 mod tls;
 mod utils;
+
+// Re-export modules for testing
+#[cfg(any(test, feature = "testing"))]
+pub mod handshake;
+#[cfg(any(test, feature = "testing"))]
+pub mod record;
+#[cfg(not(any(test, feature = "testing")))]
+mod handshake;
+#[cfg(not(any(test, feature = "testing")))]
+mod record;
 
 // Re-export error types
 pub use error::Error;

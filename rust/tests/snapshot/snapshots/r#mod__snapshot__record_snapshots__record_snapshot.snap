@@ -1,0 +1,18 @@
+---
+source: tests/snapshot/record_snapshots.rs
+expression: record
+---
+Record {
+    record_type: Handshake,
+    version: ProtocolVersion {
+        major: 3,
+        minor: 4,
+    },
+    payload: [
+        1,
+        2,
+        3,
+        4,
+        5,
+    ],
+}

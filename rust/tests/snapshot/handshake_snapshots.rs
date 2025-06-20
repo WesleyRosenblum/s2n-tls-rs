@@ -35,14 +35,14 @@ fn test_client_hello_snapshot() {
     let message = HandshakeMessage::ClientHello(client_hello);
     
     // Create a snapshot of the message
-    assert_debug_snapshot!(message);
+    assert_debug_snapshot!("client_hello_snapshot", message);
     
     // Serialize the message
     let mut buffer = Vec::new();
     message.encode(&mut buffer).unwrap();
     
     // Create a snapshot of the serialized message
-    assert_debug_snapshot!(buffer);
+    assert_debug_snapshot!("client_hello_buffer_snapshot", buffer);
     
     // Clean up
     assert!(cleanup().is_ok());

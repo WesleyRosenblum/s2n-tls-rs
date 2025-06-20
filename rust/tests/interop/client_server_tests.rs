@@ -1,6 +1,7 @@
 // Interoperability tests between Rust and C implementations
 
 use std::process::{Command, Stdio};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use s2n_tls_rs::{init, cleanup, Config, Connection};
@@ -13,7 +14,7 @@ fn test_rust_client_c_server() {
     assert!(init().is_ok());
     
     // Start the s2n-tls C server in a separate process
-    let server = Command::new("../bin/s2nd")
+    let mut server = Command::new("../bin/s2nd")
         .args(&["--cert", "../tests/pems/rsa_2048_sha256_wildcard_cert.pem",
                 "--key", "../tests/pems/rsa_2048_sha256_wildcard_key.pem",
                 "127.0.0.1", "8443"])
@@ -30,7 +31,7 @@ fn test_rust_client_c_server() {
     config.set_verify_host_callback(|_| Ok(())).unwrap(); // Skip hostname verification for testing
     
     let mut client = Connection::new_client().unwrap();
-    client.set_config(config).unwrap();
+    client.set_config(Arc::new(config)).unwrap();
     
     // Connect to the server
     // Note: In a real test, we would use actual socket I/O

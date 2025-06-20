@@ -70,6 +70,12 @@ impl Connection {
         Ok(0)
     }
     
+    /// Set the file descriptor for I/O operations
+    pub fn set_fd(&mut self, fd: std::os::fd::RawFd) -> Result<(), Error> {
+        // This is a placeholder implementation
+        Ok(())
+    }
+    
     /// Close the TLS connection
     pub fn shutdown(&mut self) -> Result<BlockedStatus, Error> {
         // This is a placeholder implementation

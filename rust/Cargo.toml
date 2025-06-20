@@ -32,9 +32,13 @@ test-case = "3.0"
 # For interoperability testing
 serial_test = "1.0"
 
+# Enable testing feature for tests
+s2n-tls-rs = { path = ".", features = ["testing"] }
+
 [features]
 default = []
 fips = ["aws-lc-rs/fips"]
+testing = []
 
 [lib]
 name = "s2n_tls_rs"

@@ -1,0 +1,16 @@
+---
+source: tests/snapshot/record_snapshots.rs
+expression: buffer
+---
+[
+    22,
+    3,
+    4,
+    0,
+    5,
+    1,
+    2,
+    3,
+    4,
+    5,
+]

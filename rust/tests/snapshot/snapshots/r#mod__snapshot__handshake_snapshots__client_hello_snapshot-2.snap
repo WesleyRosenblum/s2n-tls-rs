@@ -1,0 +1,10 @@
+---
+source: tests/snapshot/handshake_snapshots.rs
+expression: buffer
+---
+[
+    1,
+    0,
+    0,
+    0,
+]

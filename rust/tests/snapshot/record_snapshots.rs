@@ -17,14 +17,14 @@ fn test_record_snapshot() {
     };
     
     // Create a snapshot of the record
-    assert_debug_snapshot!(record);
+    assert_debug_snapshot!("record_snapshot", record);
     
     // Serialize the record
     let mut buffer = Vec::new();
     record.encode(&mut buffer).unwrap();
     
     // Create a snapshot of the serialized record
-    assert_debug_snapshot!(buffer);
+    assert_debug_snapshot!("record_buffer_snapshot", buffer);
     
     // Clean up
     assert!(cleanup().is_ok());
