@@ -106,4 +106,6 @@ Before marking a task as complete, ensure:
 7. **Interoperability**: Interoperability with s2n-tls is maintained where applicable.
 
 
-More details are in ./kiro/specs/rust-tls-implementation/design.md, ./kiro/specs/rust-tls-implementation/requirements.md, and ./kiro/specs/rust-tls-implementation/tasks.md. Ensure the guidelines in them are followed for every task.
+More details are in ./kiro/specs/rust-tls-implementation/design.md, ./kiro/specs/rust-tls-implementation/requirements.md, and ./kiro/specs/rust-tls-implementation/tasks.md. Ensure the guidelines in them are followed for every task. After a task is completed, update tasks.md to indicate completion.
+
+Do not create compatibility layers with s2n_stuffer and s2n_blob, those constructs are only needed for a C code base, a Rust implementation should use Vecs and Slices, etc

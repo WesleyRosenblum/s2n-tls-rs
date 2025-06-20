@@ -11,6 +11,7 @@ pub mod api;
 pub use api::{Config, Connection, BlockedStatus, ConnectionMode};
 
 // Internal modules
+mod buffer;
 mod crypto;
 mod error;
 #[cfg(any(test, feature = "testing"))]
@@ -23,6 +24,8 @@ mod tls;
 mod utils;
 
 // Re-export modules for testing
+#[cfg(any(test, feature = "testing"))]
+pub mod buffer;
 #[cfg(any(test, feature = "testing"))]
 pub mod handshake;
 #[cfg(any(test, feature = "testing"))]

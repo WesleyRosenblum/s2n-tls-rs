@@ -36,20 +36,17 @@ This document outlines the tasks required to implement the Rust TLS library with
 - [ ] 2.1 Implement basic data structures
   - Create TLS record structures in Rust
   - Implement TLS message structures
-  - Ensure compatibility with existing s2n-tls data structures
   - _Requirements: 1.1, 4.1_
 
-- [ ] 2.2 Implement zerocopy-based buffer management
+- [x] 2.2 Implement zerocopy-based buffer management
   - Create safe buffer abstractions
   - Implement zero-copy parsing utilities
-  - Design compatibility layer with s2n_blob and s2n_stuffer
   - _Requirements: 4.1, 4.2, 4.5_
 
 - [ ] 2.3 Implement I/O abstractions
   - Create IoProvider trait
   - Implement FdIoProvider for file descriptors
   - Implement RwIoProvider for Read + Write traits
-  - Ensure compatibility with existing s2n-tls I/O functions
   - _Requirements: 1.1, 5.1_
 
 - [ ] 2.4 Implement security policy framework
@@ -133,7 +130,6 @@ This document outlines the tasks required to implement the Rust TLS library with
 - [ ] 5.1 Implement connection state management
   - Create state machine framework in Rust
   - Implement state transitions
-  - Ensure compatibility with s2n-tls state machine
   - _Requirements: 1.1, 3.2_
 
 - [ ] 5.2 Implement client-side handshake flow

@@ -2,6 +2,7 @@
 // Contains basic unit tests for the library components
 
 mod api_tests;
+mod buffer_tests;
 mod record_tests;
 mod handshake_tests;
 mod crypto_tests;
