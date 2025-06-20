@@ -124,12 +124,12 @@ pub fn new(config: super::Config) -> Self {
     pub fn send(&mut self, data: &[u8]) -> Result<usize, Error> {
         // If the connection is not established, return an error
         if !self.is_established() {
-            return Err(Error::usage("Connection not established"));
+            return Err(Error::usage(crate::error::UsageError::Other("Connection not established".to_string())));
         }
         
         // If the connection is blocked on writing, return an error
         if self.is_write_blocked() {
-            return Err(Error::blocked("Connection blocked on writing"));
+            return Err(Error::Blocked(crate::error::BlockedError::Io));
         }
         
         // Add the data to the output buffer
@@ -143,12 +143,12 @@ pub fn new(config: super::Config) -> Self {
     pub fn recv(&mut self, data: &mut [u8]) -> Result<usize, Error> {
         // If the connection is not established, return an error
         if !self.is_established() {
-            return Err(Error::usage("Connection not established"));
+            return Err(Error::usage(crate::error::UsageError::Other("Connection not established".to_string())));
         }
         
         // If the connection is blocked on reading, return an error
         if self.is_read_blocked() {
-            return Err(Error::blocked("Connection blocked on reading"));
+            return Err(Error::Blocked(crate::error::BlockedError::Io));
         }
         
         // If the input buffer is empty, return 0
@@ -176,7 +176,7 @@ pub fn new(config: super::Config) -> Self {
         
         // If the connection is closed or in error state, return an error
         if self.is_closed() || self.is_error() {
-            return Err(Error::usage("Connection closed or in error state"));
+            return Err(Error::usage(crate::error::UsageError::Other("Connection closed or in error state".to_string())));
         }
         
         // Create a dummy record to start the handshake

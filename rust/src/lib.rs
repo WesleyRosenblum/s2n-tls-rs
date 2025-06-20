@@ -22,11 +22,12 @@ mod io;
 mod state;
 mod tls;
 mod utils;
-pub mod compliance;
 
 // Re-export modules for testing
 #[cfg(any(test, feature = "testing"))]
-pub mod buffer;
+pub mod buffer_pub {
+    pub use crate::buffer::*;
+}
 #[cfg(any(test, feature = "testing"))]
 pub mod handshake;
 #[cfg(any(test, feature = "testing"))]

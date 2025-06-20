@@ -9,7 +9,7 @@ authors = ["Amazon Web Services"]
 
 [dependencies]
 # Cryptographic operations
-aws-lc-rs = "1.0.0"
+aws-lc-rs = "1.13.1"
 
 # Error handling
 thiserror = "1.0"

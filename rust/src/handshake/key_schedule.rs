@@ -193,36 +193,4 @@ impl KeySchedule {
     }
 }
 
-/// Extend the crypto module with HKDF-Expand-Label
-impl crypto {
-    /// HKDF-Expand-Label as defined in RFC 8446 section 7.1
-    pub fn hkdf_expand_label(
-        hash_algorithm: HashAlgorithm,
-        secret: &[u8],
-        label: &[u8],
-        context: &[u8],
-        length: usize,
-    ) -> Result<Vec<u8>, Error> {
-        // Construct the HkdfLabel
-        let mut hkdf_label = Vec::with_capacity(2 + 1 + label.len() + 1 + context.len());
-        
-        // Length (2 bytes)
-        hkdf_label.push((length >> 8) as u8);
-        hkdf_label.push(length as u8);
-        
-        // Label length (1 byte)
-        hkdf_label.push(label.len() as u8);
-        
-        // Label
-        hkdf_label.extend_from_slice(label);
-        
-        // Context length (1 byte)
-        hkdf_label.push(context.len() as u8);
-        
-        // Context
-        hkdf_label.extend_from_slice(context);
-        
-        // Expand
-        crypto::hkdf_expand(hash_algorithm, secret, &hkdf_label, length)
-    }
-}
+// The hkdf_expand_label function is now implemented directly in the crypto module

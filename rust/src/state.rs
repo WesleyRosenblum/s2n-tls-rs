@@ -433,7 +433,7 @@ pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> 
                     self.state = ConnectionState::ClientFinishedSent;
                     
                     // Derive application traffic keys
-                    if let (Some(key_schedule), Some(cipher_suite)) = (&self.key_schedule, self.cipher_suite) {
+                    if let Some(cipher_suite) = self.cipher_suite {
                         // Get the transcript hash
                         if let Some(handshake_verification) = &self.handshake_verification {
                             let transcript_hash = handshake_verification.get_transcript_hash()?;
@@ -441,23 +441,23 @@ pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> 
                             // Derive the master secret
                             if let Some(key_schedule) = &mut self.key_schedule {
                                 key_schedule.derive_master_secret()?;
+                                
+                                // Derive the client application traffic secret
+                                let client_application_traffic_secret = key_schedule.derive_client_application_traffic_secret(&transcript_hash)?;
+                                
+                                // Derive the server application traffic secret
+                                let server_application_traffic_secret = key_schedule.derive_server_application_traffic_secret(&transcript_hash)?;
+                                
+                                // Derive the client application traffic keys
+                                let client_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &client_application_traffic_secret)?;
+                                
+                                // Derive the server application traffic keys
+                                let server_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &server_application_traffic_secret)?;
+                                
+                                // Save the traffic keys
+                                self.client_application_traffic_keys = Some(client_application_traffic_keys);
+                                self.server_application_traffic_keys = Some(server_application_traffic_keys);
                             }
-                            
-                            // Derive the client application traffic secret
-                            let client_application_traffic_secret = key_schedule.derive_client_application_traffic_secret(&transcript_hash)?;
-                            
-                            // Derive the server application traffic secret
-                            let server_application_traffic_secret = key_schedule.derive_server_application_traffic_secret(&transcript_hash)?;
-                            
-                            // Derive the client application traffic keys
-                            let client_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &client_application_traffic_secret)?;
-                            
-                            // Derive the server application traffic keys
-                            let server_application_traffic_keys = key_schedule.derive_traffic_keys(cipher_suite, &server_application_traffic_secret)?;
-                            
-                            // Save the traffic keys
-                            self.client_application_traffic_keys = Some(client_application_traffic_keys);
-                            self.server_application_traffic_keys = Some(server_application_traffic_keys);
                         }
                     }
                     
@@ -655,6 +655,14 @@ pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> 
         ConnectionState::Error => {
             // Error state
             Err(Error::protocol(ProtocolError::Other("Connection in error state".into())))
+        }
+        // Add a catch-all pattern for the missing ConnectionState variants
+        ConnectionState::ServerCertificateSent |
+        ConnectionState::ServerCertificateVerifySent |
+        ConnectionState::ClientCertificateSent |
+        ConnectionState::ClientCertificateVerifySent => {
+            // These states are not fully implemented yet
+            Err(Error::protocol(ProtocolError::Other("Connection state not implemented".into())))
         }
     }
 }
@@ -869,6 +877,7 @@ pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> 
 }
 
 /// TLS state machine
+#[derive(Debug)]
 pub struct StateMachine {
     /// Connection
     pub connection: Connection,

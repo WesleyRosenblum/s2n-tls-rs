@@ -1,10 +1,10 @@
 // Crypto module
 // Contains cryptographic operations for the TLS implementation
 
-use aws_lc_rs::aead::{Aead, AeadTag, Aes128Gcm, Aes256Gcm, ChaCha20Poly1305};
-use aws_lc_rs::digest::{Digest, Sha256, Sha384};
-use aws_lc_rs::hkdf::Hkdf;
-use aws_lc_rs::hmac::{Hmac, Key as HmacKey};
+use aws_lc_rs::aead::Aad;
+use aws_lc_rs::digest;
+use aws_lc_rs::hmac;
+use aws_lc_rs::hkdf;
 use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
 use std::convert::TryInto;
@@ -168,25 +168,43 @@ pub fn aead_encrypt(
     // Create the AEAD object and encrypt
     match algorithm {
         AeadAlgorithm::Aes128Gcm => {
-            let aead = Aes128Gcm::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = aead
-                .seal_in_place_separate_tag(nonce, aad, ciphertext)
+            let key_array: [u8; 16] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            
+            // Encrypt in-place
+            let mut in_out = ciphertext.to_vec();
+            let tag = aws_lc_rs::aead::aes_128_gcm_encrypt(&key_array, &nonce_array, aad, &mut in_out)
                 .map_err(|_| Error::crypto(CryptoError::EncryptionFailed))?;
-            tag_bytes.copy_from_slice(tag.as_ref());
+            
+            // Copy the ciphertext and tag to the result
+            ciphertext.copy_from_slice(&in_out);
+            tag_bytes.copy_from_slice(&tag);
         }
         AeadAlgorithm::Aes256Gcm => {
-            let aead = Aes256Gcm::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = aead
-                .seal_in_place_separate_tag(nonce, aad, ciphertext)
+            let key_array: [u8; 32] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            
+            // Encrypt in-place
+            let mut in_out = ciphertext.to_vec();
+            let tag = aws_lc_rs::aead::aes_256_gcm_encrypt(&key_array, &nonce_array, aad, &mut in_out)
                 .map_err(|_| Error::crypto(CryptoError::EncryptionFailed))?;
-            tag_bytes.copy_from_slice(tag.as_ref());
+            
+            // Copy the ciphertext and tag to the result
+            ciphertext.copy_from_slice(&in_out);
+            tag_bytes.copy_from_slice(&tag);
         }
         AeadAlgorithm::ChaCha20Poly1305 => {
-            let aead = ChaCha20Poly1305::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = aead
-                .seal_in_place_separate_tag(nonce, aad, ciphertext)
+            let key_array: [u8; 32] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            
+            // Encrypt in-place
+            let mut in_out = ciphertext.to_vec();
+            let tag = aws_lc_rs::aead::chacha20_poly1305_encrypt(&key_array, &nonce_array, aad, &mut in_out)
                 .map_err(|_| Error::crypto(CryptoError::EncryptionFailed))?;
-            tag_bytes.copy_from_slice(tag.as_ref());
+            
+            // Copy the ciphertext and tag to the result
+            ciphertext.copy_from_slice(&in_out);
+            tag_bytes.copy_from_slice(&tag);
         }
     }
 
@@ -224,21 +242,27 @@ pub fn aead_decrypt(
     // Create the AEAD object and decrypt
     match algorithm {
         AeadAlgorithm::Aes128Gcm => {
-            let aead = Aes128Gcm::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = AeadTag::try_from(tag).map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
-            aead.open_in_place_with_tag(nonce, aad, &mut plaintext, &tag)
+            let key_array: [u8; 16] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            let tag_array: [u8; 16] = tag.try_into().map_err(|_| Error::crypto(CryptoError::InvalidTagSize))?;
+            
+            aws_lc_rs::aead::aes_128_gcm_decrypt(&key_array, &nonce_array, aad, &mut plaintext, &tag_array)
                 .map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
         }
         AeadAlgorithm::Aes256Gcm => {
-            let aead = Aes256Gcm::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = AeadTag::try_from(tag).map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
-            aead.open_in_place_with_tag(nonce, aad, &mut plaintext, &tag)
+            let key_array: [u8; 32] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            let tag_array: [u8; 16] = tag.try_into().map_err(|_| Error::crypto(CryptoError::InvalidTagSize))?;
+            
+            aws_lc_rs::aead::aes_256_gcm_decrypt(&key_array, &nonce_array, aad, &mut plaintext, &tag_array)
                 .map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
         }
         AeadAlgorithm::ChaCha20Poly1305 => {
-            let aead = ChaCha20Poly1305::new(key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?);
-            let tag = AeadTag::try_from(tag).map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
-            aead.open_in_place_with_tag(nonce, aad, &mut plaintext, &tag)
+            let key_array: [u8; 32] = key.try_into().map_err(|_| Error::crypto(CryptoError::InvalidKeySize))?;
+            let nonce_array: [u8; 12] = nonce.try_into().map_err(|_| Error::crypto(CryptoError::InvalidNonceSize))?;
+            let tag_array: [u8; 16] = tag.try_into().map_err(|_| Error::crypto(CryptoError::InvalidTagSize))?;
+            
+            aws_lc_rs::aead::chacha20_poly1305_decrypt(&key_array, &nonce_array, aad, &mut plaintext, &tag_array)
                 .map_err(|_| Error::crypto(CryptoError::DecryptionFailed))?;
         }
     }
@@ -250,14 +274,12 @@ pub fn aead_decrypt(
 pub fn hash(algorithm: HashAlgorithm, data: &[u8]) -> Result<Vec<u8>, Error> {
     match algorithm {
         HashAlgorithm::Sha256 => {
-            let mut hasher = Sha256::new();
-            hasher.update(data);
-            Ok(hasher.finish().as_ref().to_vec())
+            let digest = digest::digest(&digest::SHA256, data);
+            Ok(digest.as_ref().to_vec())
         }
         HashAlgorithm::Sha384 => {
-            let mut hasher = Sha384::new();
-            hasher.update(data);
-            Ok(hasher.finish().as_ref().to_vec())
+            let digest = digest::digest(&digest::SHA384, data);
+            Ok(digest.as_ref().to_vec())
         }
     }
 }
@@ -266,16 +288,12 @@ pub fn hash(algorithm: HashAlgorithm, data: &[u8]) -> Result<Vec<u8>, Error> {
 pub fn hmac(algorithm: HashAlgorithm, key: &[u8], data: &[u8]) -> Result<Vec<u8>, Error> {
     match algorithm {
         HashAlgorithm::Sha256 => {
-            let hmac_key = HmacKey::new(Sha256::new(), key);
-            let mut hmac = Hmac::new(&hmac_key);
-            hmac.update(data);
-            Ok(hmac.sign().as_ref().to_vec())
+            let tag = hmac::sign(&hmac::Key::new(hmac::HMAC_SHA256, key), data);
+            Ok(tag.as_ref().to_vec())
         }
         HashAlgorithm::Sha384 => {
-            let hmac_key = HmacKey::new(Sha384::new(), key);
-            let mut hmac = Hmac::new(&hmac_key);
-            hmac.update(data);
-            Ok(hmac.sign().as_ref().to_vec())
+            let tag = hmac::sign(&hmac::Key::new(hmac::HMAC_SHA384, key), data);
+            Ok(tag.as_ref().to_vec())
         }
     }
 }
@@ -289,12 +307,14 @@ pub fn hkdf_extract(
     match algorithm {
         HashAlgorithm::Sha256 => {
             let salt = salt.unwrap_or(&[]);
-            let prk = Hkdf::<Sha256>::extract(Some(salt), ikm);
+            let key = hmac::Key::new(hmac::HMAC_SHA256, salt);
+            let prk = hmac::sign(&key, ikm);
             Ok(prk.as_ref().to_vec())
         }
         HashAlgorithm::Sha384 => {
             let salt = salt.unwrap_or(&[]);
-            let prk = Hkdf::<Sha384>::extract(Some(salt), ikm);
+            let key = hmac::Key::new(hmac::HMAC_SHA384, salt);
+            let prk = hmac::sign(&key, ikm);
             Ok(prk.as_ref().to_vec())
         }
     }
@@ -310,17 +330,13 @@ pub fn hkdf_expand(
     match algorithm {
         HashAlgorithm::Sha256 => {
             let mut output = vec![0; output_len];
-            let hkdf = Hkdf::<Sha256>::from_prk(prk)
-                .map_err(|_| Error::crypto(CryptoError::HkdfError))?;
-            hkdf.expand(info, &mut output)
+            aws_lc_rs::hkdf::hkdf_expand_sha256(prk, info, &mut output)
                 .map_err(|_| Error::crypto(CryptoError::HkdfError))?;
             Ok(output)
         }
         HashAlgorithm::Sha384 => {
             let mut output = vec![0; output_len];
-            let hkdf = Hkdf::<Sha384>::from_prk(prk)
-                .map_err(|_| Error::crypto(CryptoError::HkdfError))?;
-            hkdf.expand(info, &mut output)
+            aws_lc_rs::hkdf::hkdf_expand_sha384(prk, info, &mut output)
                 .map_err(|_| Error::crypto(CryptoError::HkdfError))?;
             Ok(output)
         }
@@ -366,6 +382,28 @@ pub fn construct_nonce(iv: &[u8], sequence_number: u64) -> Result<Vec<u8>, Error
     }
 
     Ok(nonce)
+}
+
+/// Perform HKDF-Expand-Label operation as defined in TLS 1.3
+pub fn hkdf_expand_label(
+    algorithm: HashAlgorithm,
+    secret: &[u8],
+    label: &[u8],
+    context: &[u8],
+    length: usize,
+) -> Result<Vec<u8>, Error> {
+    // Construct the HkdfLabel
+    let tls13_label = [b"tls13 ", label].concat();
+    
+    let mut hkdf_label = Vec::new();
+    hkdf_label.extend_from_slice(&(length as u16).to_be_bytes());
+    hkdf_label.push(tls13_label.len() as u8);
+    hkdf_label.extend_from_slice(&tls13_label);
+    hkdf_label.push(context.len() as u8);
+    hkdf_label.extend_from_slice(context);
+    
+    // Perform HKDF-Expand
+    hkdf_expand(algorithm, secret, &hkdf_label, length)
 }
 
 #[cfg(test)]
