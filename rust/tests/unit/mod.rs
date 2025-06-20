@@ -12,3 +12,4 @@ mod key_exchange_tests;
 mod key_schedule_tests;
 mod certificate_tests;
 mod finished_tests;
+mod state_tests;

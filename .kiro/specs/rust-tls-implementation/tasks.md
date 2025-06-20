@@ -127,7 +127,7 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 5. TLS State Machine
 
-- [ ] 5.1 Implement connection state management
+- [x] 5.1 Implement connection state management
   - Create state machine framework in Rust
   - Implement state transitions
   - _Requirements: 1.1, 3.2_

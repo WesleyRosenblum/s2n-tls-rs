@@ -1,7 +1,6 @@
 //! TLS state machine implementation
 //!
 //! This module implements the TLS state machine as specified in RFC 8446.
-//! It manages the TLS protocol state transitions.
 
 use crate::buffer::Buffer;
 use crate::crypto::{self, HashAlgorithm, CipherSuite, TrafficKeys};
@@ -9,7 +8,7 @@ use crate::error::{Error, ProtocolError, CryptoError};
 use crate::handshake::{
     ClientHello, ServerHello, Certificate, CertificateEntry, CertificateVerificationContext,
     Finished, HandshakeVerificationContext, TranscriptHashContext, KeySchedule,
-    NamedGroup, KeyShareEntry, ClientKeyShare, ServerKeyShare, KeyPair, HandshakeMessage,
+    NamedGroup, KeyShareEntry, ClientKeyShare, ServerKeyShare, KeyPair,
 };
 use crate::record::{Record, RecordType, ProtocolVersion, TLSPlaintext, TLSCiphertext};
 
@@ -49,23 +48,6 @@ pub enum ConnectionState {
     Closed,
     /// Error state
     Error,
-}
-
-/// TLS state machine event
-#[derive(Debug)]
-pub enum Event {
-    /// Handshake message received
-    HandshakeMessageReceived(HandshakeMessage),
-    /// Handshake message sent
-    HandshakeMessageSent(HandshakeMessage),
-    /// Application data received
-    ApplicationDataReceived,
-    /// Application data sent
-    ApplicationDataSent,
-    /// Close requested
-    CloseRequested,
-    /// Error occurred
-    ErrorOccurred,
 }
 
 /// TLS connection configuration
@@ -547,73 +529,5 @@ impl Connection {
         }
         
         Ok(())
-    }
-}
-
-/// TLS state machine
-pub struct StateMachine {
-    /// Connection
-    pub connection: Connection,
-}
-
-impl StateMachine {
-    /// Create a new state machine
-    pub fn new(config: ConnectionConfig) -> Self {
-        Self {
-            connection: Connection::new(config),
-        }
-    }
-    
-    /// Initialize the state machine
-    pub fn initialize(&mut self) -> Result<(), Error> {
-        self.connection.initialize()
-    }
-    
-    /// Process an event
-    pub fn process_event(&mut self, event: Event) -> Result<Vec<Record>, Error> {
-        match event {
-            Event::HandshakeMessageReceived(message) => {
-                // Process the handshake message
-                // This is a placeholder implementation
-                Ok(Vec::new())
-            }
-            Event::HandshakeMessageSent(message) => {
-                // Process the handshake message
-                // This is a placeholder implementation
-                Ok(Vec::new())
-            }
-            Event::ApplicationDataReceived => {
-                // Process application data
-                // This is a placeholder implementation
-                Ok(Vec::new())
-            }
-            Event::ApplicationDataSent => {
-                // Process application data
-                // This is a placeholder implementation
-                Ok(Vec::new())
-            }
-            Event::CloseRequested => {
-                // Close the connection
-                // This is a placeholder implementation
-                self.connection.state = ConnectionState::Closed;
-                Ok(Vec::new())
-            }
-            Event::ErrorOccurred => {
-                // Handle error
-                // This is a placeholder implementation
-                self.connection.state = ConnectionState::Error;
-                Ok(Vec::new())
-            }
-        }
-    }
-    
-    /// Process a record
-    pub fn process_record(&mut self, record: &Record) -> Result<Vec<Record>, Error> {
-        self.connection.process_record(record)
-    }
-    
-    /// Get the current state
-    pub fn state(&self) -> ConnectionState {
-        self.connection.state
     }
 }
