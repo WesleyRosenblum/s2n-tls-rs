@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc b91df74d10ba73f040aaf6e12602243bf14f39ec2b1d1327d92c39b2c30fcfb7 # shrinks to record_type = ChangeCipherSpec, version = ProtocolVersion { major: 3, minor: 1 }, payload_size = 16385

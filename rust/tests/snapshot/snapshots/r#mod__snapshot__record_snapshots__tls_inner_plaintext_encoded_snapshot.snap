@@ -1,0 +1,15 @@
+---
+source: tests/snapshot/record_snapshots.rs
+expression: encoded
+---
+[
+    1,
+    2,
+    3,
+    4,
+    5,
+    23,
+    0,
+    0,
+    0,
+]

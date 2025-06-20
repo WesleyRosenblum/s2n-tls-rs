@@ -1,0 +1,15 @@
+---
+source: tests/snapshot/record_snapshots.rs
+expression: header
+---
+RecordHeader {
+    record_type: 22,
+    version: ProtocolVersion {
+        major: 3,
+        minor: 3,
+    },
+    length: [
+        0,
+        123,
+    ],
+}

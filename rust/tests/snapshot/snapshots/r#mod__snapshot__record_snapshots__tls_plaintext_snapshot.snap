@@ -1,0 +1,18 @@
+---
+source: tests/snapshot/record_snapshots.rs
+expression: plaintext
+---
+TLSPlaintext {
+    record_type: Handshake,
+    legacy_record_version: ProtocolVersion {
+        major: 3,
+        minor: 3,
+    },
+    fragment: [
+        1,
+        2,
+        3,
+        4,
+        5,
+    ],
+}
