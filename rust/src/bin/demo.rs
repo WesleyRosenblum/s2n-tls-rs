@@ -37,17 +37,18 @@ fn run_client(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting TLS client...");
     
     // Create a TLS client connection
-    let mut config = Config::new()?;
+    let mut config = Config::new_client();
     // Configure the client
     
-    let mut conn = Connection::new_client()?;
-    conn.set_config(Arc::new(config))?;
+    let mut conn = Connection::new(config);
+    conn.initialize()?;
     
     // Connect to the server
     let server_addr = "127.0.0.1:8443";
     println!("Connecting to {}...", server_addr);
     let socket = TcpStream::connect(server_addr)?;
-    conn.set_fd(socket.as_raw_fd())?;
+    // Note: In the current API, we don't have direct fd support
+    // This would need to be implemented using process_input/process_output
     
     // Perform the TLS handshake
     println!("Performing TLS handshake...");
@@ -69,7 +70,7 @@ fn run_client(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     
     // Close the connection
     println!("Closing connection...");
-    conn.shutdown()?;
+    conn.close()?;
     
     println!("Client finished.");
     Ok(())
@@ -79,7 +80,7 @@ fn run_server(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting TLS server...");
     
     // Create a TLS server connection
-    let mut config = Config::new()?;
+    let mut config = Config::new_server();
     // Configure the server
     
     // Listen for connections
@@ -91,9 +92,10 @@ fn run_server(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         let stream = stream?;
         println!("Connection from {}", stream.peer_addr()?);
         
-        let mut conn = Connection::new_server()?;
-        conn.set_config(Arc::new(config.clone()))?;
-        conn.set_fd(stream.as_raw_fd())?;
+        let mut conn = Connection::new(config.clone());
+        conn.initialize()?;
+        // Note: In the current API, we don't have direct fd support
+        // This would need to be implemented using process_input/process_output
         
         // Perform the TLS handshake
         println!("Performing TLS handshake...");
@@ -115,7 +117,7 @@ fn run_server(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         
         // Close the connection
         println!("Closing connection...");
-        conn.shutdown()?;
+        conn.close()?;
     }
     
     println!("Server finished.");

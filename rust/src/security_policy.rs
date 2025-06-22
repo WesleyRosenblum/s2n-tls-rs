@@ -97,8 +97,8 @@ impl SecurityPolicy {
         
         // Add named groups
         policy.named_groups.push(NamedGroup::X25519);
-        policy.named_groups.push(NamedGroup::SECP256R1);
-        policy.named_groups.push(NamedGroup::SECP384R1);
+        policy.named_groups.push(NamedGroup::Secp256r1);
+        policy.named_groups.push(NamedGroup::Secp384r1);
         
         // Set TLS version range
         policy.min_tls_version = TlsVersion::Tls13;
@@ -117,7 +117,7 @@ impl SecurityPolicy {
         
         // Add named groups
         policy.named_groups.push(NamedGroup::X25519);
-        policy.named_groups.push(NamedGroup::SECP384R1);
+        policy.named_groups.push(NamedGroup::Secp384r1);
         
         // Set TLS version range
         policy.min_tls_version = TlsVersion::Tls13;
