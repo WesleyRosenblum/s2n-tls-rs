@@ -43,13 +43,13 @@ This document outlines the tasks required to implement the Rust TLS library with
   - Implement zero-copy parsing utilities
   - _Requirements: 4.1, 4.2, 4.5_
 
-- [ ] 2.3 Implement I/O abstractions
+- [x] 2.3 Implement I/O abstractions
   - Create IoProvider trait
   - Implement FdIoProvider for file descriptors
   - Implement RwIoProvider for Read + Write traits
   - _Requirements: 1.1, 5.1_
 
-- [ ] 2.4 Implement security policy framework
+- [x] 2.4 Implement security policy framework
   - Create SecurityPolicy struct in Rust
   - Implement SecurityPolicyBuilder
   - Ensure compatibility with existing s2n-tls security policies
@@ -225,25 +225,25 @@ This document outlines the tasks required to implement the Rust TLS library with
 
 ## 9. Documentation and Integration
 
-- [ ] 9.1 Write API documentation
+- [x] 9.1 Write API documentation
   - Document public Rust API
   - Include examples
   - Follow s2n-tls documentation style
   - _Requirements: 5.3_
 
-- [ ] 9.2 Write usage guide
+- [x] 9.2 Write usage guide
   - Create getting started guide for Rust implementation
   - Document common use cases
   - Integrate with existing s2n-tls documentation
   - _Requirements: 5.3_
 
-- [ ] 9.3 Perform final code review and cleanup
+- [x] 9.3 Perform final code review and cleanup
   - Ensure code follows Rust API Guidelines
   - Address any remaining TODOs or issues
   - Verify compatibility with s2n-tls
   - _Requirements: 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12_
 
-- [ ] 9.4 Finalize documentation and build instructions
+- [x] 9.4 Finalize documentation and build instructions
   - Create comprehensive build documentation for the Rust implementation
   - Document how to use the Rust implementation alongside the C implementation
   - Update the main s2n-tls README to mention the Rust implementation

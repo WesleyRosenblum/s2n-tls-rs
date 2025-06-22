@@ -1,6 +1,63 @@
 //! TLS configuration API
 //!
-//! This module provides the public API for TLS configuration.
+//! This module provides the public API for TLS configuration. The [`Config`] struct
+//! allows you to configure various aspects of TLS connections, such as certificates,
+//! cipher suites, and named groups.
+//!
+//! ## Examples
+//!
+//! ### Creating a client configuration
+//!
+//! ```rust
+//! use s2n_tls_rs::{Config, Error};
+//! use s2n_tls_rs::crypto::cipher_suites::TLS_AES_128_GCM_SHA256;
+//! use s2n_tls_rs::handshake::NamedGroup;
+//!
+//! fn create_client_config() -> Result<Config, Error> {
+//!     let mut config = Config::new_client();
+//!     
+//!     // Set the server name for SNI
+//!     config.set_server_name("example.com".to_string())?;
+//!     
+//!     // Add trusted CA certificates
+//!     // config.add_trusted_ca(ca_cert_data)?;
+//!     
+//!     // Configure cipher suites
+//!     config.add_cipher_suite(TLS_AES_128_GCM_SHA256)?;
+//!     
+//!     // Configure named groups
+//!     config.add_named_group(NamedGroup::X25519)?;
+//!     
+//!     Ok(config)
+//! }
+//! ```
+//!
+//! ### Creating a server configuration
+//!
+//! ```rust
+//! use s2n_tls_rs::{Config, Error};
+//! use s2n_tls_rs::crypto::cipher_suites::TLS_AES_128_GCM_SHA256;
+//! use s2n_tls_rs::handshake::NamedGroup;
+//!
+//! fn create_server_config(
+//!     cert_data: Vec<u8>,
+//!     key_data: Vec<u8>
+//! ) -> Result<Config, Error> {
+//!     let mut config = Config::new_server();
+//!     
+//!     // Set the server certificate and private key
+//!     config.set_server_certificate(cert_data)?;
+//!     config.set_server_private_key(key_data)?;
+//!     
+//!     // Configure cipher suites
+//!     config.add_cipher_suite(TLS_AES_128_GCM_SHA256)?;
+//!     
+//!     // Configure named groups
+//!     config.add_named_group(NamedGroup::X25519)?;
+//!     
+//!     Ok(config)
+//! }
+//! ```
 
 use crate::error::Error;
 use crate::state::{ConnectionConfig, ConnectionMode};

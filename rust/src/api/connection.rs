@@ -1,6 +1,64 @@
 //! TLS connection API
 //!
-//! This module provides the public API for TLS connections.
+//! This module provides the public API for TLS connections. The [`Connection`] struct
+//! represents a TLS connection and provides methods for performing TLS operations such
+//! as handshaking, sending, and receiving data.
+//!
+//! ## Connection Lifecycle
+//!
+//! 1. Create a connection with [`Connection::new`]
+//! 2. Initialize the connection with [`Connection::initialize`]
+//! 3. Perform the TLS handshake with [`Connection::negotiate`]
+//! 4. Send and receive data with [`Connection::send`] and [`Connection::recv`]
+//! 5. Close the connection with [`Connection::close`]
+//!
+//! ## Handling I/O
+//!
+//! The connection doesn't perform I/O operations directly. Instead, it provides methods
+//! to process input and output data:
+//!
+//! - [`Connection::process_input`]: Process data received from the peer
+//! - [`Connection::process_output`]: Get data to send to the peer
+//!
+//! ## Example
+//!
+//! ```rust
+//! use s2n_tls_rs::{Config, Connection, Error};
+//! use std::io::{Read, Write};
+//! use std::net::TcpStream;
+//!
+//! fn handle_connection(stream: &mut TcpStream, config: Config) -> Result<(), Error> {
+//!     // Create and initialize the connection
+//!     let mut connection = Connection::new(config);
+//!     connection.initialize()?;
+//!
+//!     // Perform the TLS handshake
+//!     connection.negotiate()?;
+//!
+//!     // Send data
+//!     connection.send(b"Hello, world!")?;
+//!
+//!     // Process the output
+//!     let mut output_buffer = [0; 16384];
+//!     let len = connection.process_output(&mut output_buffer)?;
+//!     stream.write_all(&output_buffer[..len])?;
+//!
+//!     // Receive data
+//!     let mut input_buffer = [0; 16384];
+//!     let bytes_read = stream.read(&mut input_buffer)?;
+//!     connection.process_input(&input_buffer[..bytes_read])?;
+//!
+//!     // Get the decrypted data
+//!     let mut decrypted_buffer = [0; 16384];
+//!     let decrypted_bytes = connection.recv(&mut decrypted_buffer)?;
+//!     println!("{}", String::from_utf8_lossy(&decrypted_buffer[..decrypted_bytes]));
+//!
+//!     // Close the connection
+//!     connection.close()?;
+//!
+//!     Ok(())
+//! }
+//! ```
 
 use crate::error::Error;
 use crate::state::{ConnectionConfig, ConnectionMode, ConnectionState, StateMachine};

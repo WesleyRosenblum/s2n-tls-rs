@@ -108,6 +108,29 @@ bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 
 For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [Usage Guide](https://aws.github.io/s2n-tls/usage-guide).
 
+## Rust Implementation (s2n-tls-rs)
+
+s2n-tls includes a memory-safe Rust implementation of the TLS protocol that is compatible with the C implementation. The Rust implementation (s2n-tls-rs) is located in the [rust](./rust) directory and provides the same security guarantees as the C implementation while leveraging Rust's memory safety features.
+
+```rust
+// Create a server mode connection
+let mut config = Config::new_server();
+config.set_server_certificate(cert_data)?;
+config.set_server_private_key(key_data)?;
+
+// Create a connection
+let mut connection = Connection::new(config);
+connection.initialize()?;
+
+// Negotiate the TLS handshake
+connection.negotiate()?;
+
+// Send data
+connection.send(b"Hello World")?;
+```
+
+For more details on using the Rust implementation, see the [s2n-tls-rs README](./rust/README.md).
+
 ## s2n-tls features
 
 s2n-tls implements SSLv3, TLS1.0, TLS1.1, TLS1.2, and TLS1.3. For encryption, s2n-tls supports 128-bit and 256-bit AES in the CBC and GCM modes, ChaCha20, 3DES, and RC4. For forward secrecy, s2n-tls supports both DHE and ECDHE. s2n-tls also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN), and Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, 3DES, and DHE are each disabled by default for security reasons.

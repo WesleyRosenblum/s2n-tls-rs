@@ -4,11 +4,12 @@
 //! It includes the IoProvider trait and implementations for file descriptors
 //! and Rust's Read + Write traits.
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::os::fd::RawFd;
+use libc;
 
 /// I/O provider trait
-pub(crate) trait IoProvider {
+pub trait IoProvider {
     /// Read data from the underlying I/O source
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize>;
     
@@ -17,7 +18,7 @@ pub(crate) trait IoProvider {
 }
 
 /// I/O provider for file descriptors
-pub(crate) struct FdIoProvider {
+pub struct FdIoProvider {
     fd: RawFd,
 }
 
@@ -30,20 +31,46 @@ impl FdIoProvider {
 
 impl IoProvider for FdIoProvider {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        // Implementation will use libc::read
-        // This is a placeholder for now
-        Ok(0)
+        // Safety: We're calling libc::read with a valid file descriptor and buffer
+        let result = unsafe {
+            libc::read(
+                self.fd,
+                buf.as_mut_ptr() as *mut libc::c_void,
+                buf.len() as libc::size_t,
+            )
+        };
+        
+        if result < 0 {
+            // If read returns a negative value, it indicates an error
+            Err(io::Error::last_os_error())
+        } else {
+            // Otherwise, it returns the number of bytes read
+            Ok(result as usize)
+        }
     }
     
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        // Implementation will use libc::write
-        // This is a placeholder for now
-        Ok(0)
+        // Safety: We're calling libc::write with a valid file descriptor and buffer
+        let result = unsafe {
+            libc::write(
+                self.fd,
+                buf.as_ptr() as *const libc::c_void,
+                buf.len() as libc::size_t,
+            )
+        };
+        
+        if result < 0 {
+            // If write returns a negative value, it indicates an error
+            Err(io::Error::last_os_error())
+        } else {
+            // Otherwise, it returns the number of bytes written
+            Ok(result as usize)
+        }
     }
 }
 
 /// I/O provider for Rust's Read + Write traits
-pub(crate) struct RwIoProvider<T: Read + Write> {
+pub struct RwIoProvider<T: Read + Write> {
     io: T,
 }
 

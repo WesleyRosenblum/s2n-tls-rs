@@ -261,6 +261,10 @@ pub enum CryptoError {
     #[error("invalid nonce size")]
     InvalidNonceSize,
     
+    /// Invalid tag size
+    #[error("invalid tag size")]
+    InvalidTagSize,
+    
     /// Invalid secret size
     #[error("invalid secret size")]
     InvalidSecretSize,

@@ -20,6 +20,9 @@ zerocopy = "0.6"
 # Logging
 log = "0.4"
 
+# System interfaces
+libc = "0.2"
+
 [dev-dependencies]
 # Testing
 bolero = "0.8"
