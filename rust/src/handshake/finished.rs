@@ -115,8 +115,10 @@ pub fn verify_finished_data(
 pub struct TranscriptHashContext {
     /// Hash algorithm
     pub hash_algorithm: crypto::HashAlgorithm,
-    /// Running hash state
+    /// Running hash state - stores all messages concatenated
     running_hash: Vec<u8>,
+    /// Current hash value - updated incrementally
+    current_hash: Vec<u8>,
 }
 
 impl TranscriptHashContext {
@@ -125,22 +127,43 @@ impl TranscriptHashContext {
         Self {
             hash_algorithm,
             running_hash: Vec::new(),
+            current_hash: Vec::new(),
         }
     }
     
     /// Update the transcript hash with a message
     pub fn update(&mut self, message: &[u8]) -> Result<(), Error> {
-        // In a real implementation, we would maintain a running hash state
-        // For now, we'll just append the message to the running hash
+        // Append the message to the running hash for debugging/verification
         self.running_hash.extend_from_slice(message);
+        
+        // If this is the first message, just hash it
+        if self.current_hash.is_empty() {
+            self.current_hash = crypto::hash(self.hash_algorithm, message)?;
+        } else {
+            // Otherwise, hash the current hash concatenated with the message
+            let mut data = Vec::with_capacity(self.current_hash.len() + message.len());
+            data.extend_from_slice(&self.current_hash);
+            data.extend_from_slice(message);
+            self.current_hash = crypto::hash(self.hash_algorithm, &data)?;
+        }
+        
         Ok(())
     }
     
     /// Get the current transcript hash
     pub fn get_hash(&self) -> Result<Vec<u8>, Error> {
-        // In a real implementation, we would finalize the hash
-        // For now, we'll just hash the running hash
-        crypto::hash(self.hash_algorithm, &self.running_hash)
+        if self.current_hash.is_empty() {
+            // If no messages have been processed, hash an empty string
+            crypto::hash(self.hash_algorithm, &[])
+        } else {
+            // Otherwise, return the current hash
+            Ok(self.current_hash.clone())
+        }
+    }
+    
+    /// Get the full transcript for verification purposes
+    pub fn get_transcript(&self) -> &[u8] {
+        &self.running_hash
     }
 }
 

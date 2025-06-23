@@ -281,6 +281,10 @@ pub enum CryptoError {
     #[error("random number generation failed")]
     RandomGenerationFailed,
     
+    /// Invalid key
+    #[error("invalid key")]
+    InvalidKey,
+    
     /// Other crypto error
     #[error("{0}")]
     Other(String),
@@ -368,6 +372,14 @@ pub enum KeyExchangeError {
     /// ECDHE serializing error
     #[error("error serializing ECDHE public")]
     EcdheSerializing,
+    
+    /// Key generation failed
+    #[error("key generation failed")]
+    KeyGenerationFailed,
+    
+    /// Key agreement failed
+    #[error("key agreement failed")]
+    KeyAgreementFailed,
     
     /// Other key exchange error
     #[error("{0}")]

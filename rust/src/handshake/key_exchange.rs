@@ -228,19 +228,43 @@ pub struct KeyPair {
 
 /// Generate a key pair for the specified named group
 pub fn generate_key_pair(group: NamedGroup) -> Result<KeyPair, Error> {
-    // This is a placeholder implementation
-    // In a real implementation, we would use aws-lc-rs to generate the key pair
-    
-    // For now, just generate some random bytes for the private key
-    // and use the same bytes for the public key
-    let private_key = crypto::random_bytes(32)?;
-    let public_key = private_key.clone();
-    
-    Ok(KeyPair {
-        group,
-        private_key,
-        public_key,
-    })
+    match group {
+        NamedGroup::X25519 => {
+            // Generate a random private key
+            let mut private_key = crypto::random_bytes(32)?;
+            
+            // Ensure the private key meets the X25519 requirements
+            // Clear the lowest 3 bits, set the second highest bit, clear the highest bit
+            private_key[0] &= 0xF8;
+            private_key[31] &= 0x7F;
+            private_key[31] |= 0x40;
+            
+            // For now, we'll just use a placeholder for the public key
+            // In a real implementation, we would use aws-lc-rs to generate the public key
+            // This is just to make the demo work
+            let public_key = crypto::random_bytes(32)?;
+            
+            Ok(KeyPair {
+                group,
+                private_key,
+                public_key,
+            })
+        },
+        NamedGroup::Secp256r1 => {
+            // For now, we'll just implement X25519
+            // In a full implementation, we would implement all supported groups
+            Err(Error::protocol(ProtocolError::Other("Secp256r1 key generation not implemented yet".into())))
+        },
+        NamedGroup::Secp384r1 => {
+            Err(Error::protocol(ProtocolError::Other("Secp384r1 key generation not implemented yet".into())))
+        },
+        NamedGroup::Secp521r1 => {
+            Err(Error::protocol(ProtocolError::Other("Secp521r1 key generation not implemented yet".into())))
+        },
+        NamedGroup::X448 => {
+            Err(Error::protocol(ProtocolError::Other("X448 key generation not implemented yet".into())))
+        },
+    }
 }
 
 /// Compute the shared secret using the private key and peer's public key
@@ -249,15 +273,41 @@ pub fn compute_shared_secret(
     private_key: &[u8],
     peer_public_key: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // This is a placeholder implementation
-    // In a real implementation, we would use aws-lc-rs to compute the shared secret
-    
-    // For now, just concatenate the private key and peer's public key
-    // and return a hash of the result
-    let mut data = Vec::with_capacity(private_key.len() + peer_public_key.len());
-    data.extend_from_slice(private_key);
-    data.extend_from_slice(peer_public_key);
-    
-    // Use SHA-256 as a placeholder
-    crypto::hash(crypto::HashAlgorithm::Sha256, &data)
+    match group {
+        NamedGroup::X25519 => {
+            // Validate key sizes
+            if private_key.len() != 32 {
+                return Err(Error::crypto(CryptoError::InvalidKeySize));
+            }
+            if peer_public_key.len() != 32 {
+                return Err(Error::crypto(CryptoError::InvalidKeySize));
+            }
+            
+            // For now, we'll just use a placeholder for the shared secret
+            // In a real implementation, we would use aws-lc-rs to compute the shared secret
+            // This is just to make the demo work
+            
+            // Use a hash of the private key and peer's public key as the shared secret
+            let mut data = Vec::with_capacity(private_key.len() + peer_public_key.len());
+            data.extend_from_slice(private_key);
+            data.extend_from_slice(peer_public_key);
+            
+            // Use SHA-256 as a placeholder
+            crypto::hash(crypto::HashAlgorithm::Sha256, &data)
+        },
+        NamedGroup::Secp256r1 => {
+            // For now, we'll just implement X25519
+            // In a full implementation, we would implement all supported groups
+            Err(Error::protocol(ProtocolError::Other("Secp256r1 key agreement not implemented yet".into())))
+        },
+        NamedGroup::Secp384r1 => {
+            Err(Error::protocol(ProtocolError::Other("Secp384r1 key agreement not implemented yet".into())))
+        },
+        NamedGroup::Secp521r1 => {
+            Err(Error::protocol(ProtocolError::Other("Secp521r1 key agreement not implemented yet".into())))
+        },
+        NamedGroup::X448 => {
+            Err(Error::protocol(ProtocolError::Other("X448 key agreement not implemented yet".into())))
+        },
+    }
 }

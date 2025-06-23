@@ -237,30 +237,42 @@ pub fn new(config: super::Config) -> Self {
             return Err(Error::usage(crate::error::UsageError::Other("Connection closed or in error state".to_string())));
         }
         
-        // Create a dummy record to start the handshake
-        let dummy_record = Record::new(
-            crate::record::RecordType::Handshake,
-            crate::record::ProtocolVersion::TLS_1_2,
-            Vec::new(),
-        );
+        // Check if we're in client or server mode
+        match self.mode() {
+            ConnectionMode::Client => {
+                // In client mode, we need to send a ClientHello
+                // Create a record to start the handshake
+                let record = Record::new(
+                    crate::record::RecordType::Handshake,
+                    crate::record::ProtocolVersion::TLS_1_2,
+                    Vec::new(),
+                );
+                
+                // Process the record to generate a ClientHello
+                let records = self.state_machine.process_record(&record)?;
+                
+                // Add the generated records to the output buffer
+                for record in records {
+                    // Encode the record
+                    let mut buffer = Vec::new();
+                    record.encode(&mut buffer)?;
+                    self.output_buffer.extend_from_slice(&buffer);
+                }
+                
+                // Set the blocked status to indicate we need to write data
+                self.blocked_status = BlockedStatus::WriteBlocked;
+            }
+            ConnectionMode::Server => {
+                // In server mode, we need to wait for a ClientHello
+                // Set the blocked status to indicate we need to read data
+                self.blocked_status = BlockedStatus::ReadBlocked;
+            }
+        }
         
-        // Process the record
-        let records = self.state_machine.process_record(&dummy_record)?;
-        
-        // Update the connection status based on the state machine state
-        match self.state_machine.state() {
-            ConnectionState::HandshakeCompleted => {
-                self.status = ConnectionStatus::Established;
-            }
-            ConnectionState::Closed => {
-                self.status = ConnectionStatus::Closed;
-            }
-            ConnectionState::Error => {
-                self.status = ConnectionStatus::Error;
-            }
-            _ => {
-                self.status = ConnectionStatus::Handshaking;
-            }
+        // Check if the handshake is complete
+        if self.state_machine.connection.state == ConnectionState::HandshakeCompleted {
+            self.status = ConnectionStatus::Established;
+            self.blocked_status = BlockedStatus::NotBlocked;
         }
         
         Ok(())
@@ -270,6 +282,82 @@ pub fn new(config: super::Config) -> Self {
     pub fn process_input(&mut self, data: &[u8]) -> Result<usize, Error> {
         // Add the data to the input buffer
         self.input_buffer.extend_from_slice(data);
+        
+        // If we're handshaking, process the data through the state machine
+        if self.is_handshaking() {
+            // Parse the record from the input buffer
+            let mut offset = 0;
+            while offset < self.input_buffer.len() {
+                // Try to parse a record
+                match Record::decode(&self.input_buffer[offset..]) {
+                    Ok((record, consumed)) => {
+                        // Process the record
+                        let response_records = self.state_machine.process_record(&record)?;
+                        
+                        // Add the response records to the output buffer
+                        for response_record in response_records {
+                            // Encode the record
+                            let mut buffer = Vec::new();
+                            response_record.encode(&mut buffer)?;
+                            self.output_buffer.extend_from_slice(&buffer);
+                        }
+                        
+                        // Update the offset
+                        offset += consumed;
+                        
+                        // Check if the handshake is complete
+                        if self.state_machine.connection.state == ConnectionState::HandshakeCompleted {
+                            self.status = ConnectionStatus::Established;
+                            self.blocked_status = BlockedStatus::NotBlocked;
+                            
+                            // Remove the processed data from the input buffer
+                            self.input_buffer.drain(..offset);
+                            
+                            // Return the number of bytes processed
+                            return Ok(data.len());
+                        }
+                    }
+                    Err(e) => {
+                        // If we don't have enough data, set the blocked status and return
+                        if e.is_blocked() {
+                            self.blocked_status = BlockedStatus::ReadBlocked;
+                            return Ok(data.len());
+                        } else {
+                            // Otherwise, it's a real error
+                            return Err(e);
+                        }
+                    }
+                }
+            }
+            
+            // Remove the processed data from the input buffer
+            self.input_buffer.drain(..offset);
+            
+            // If we've processed all the data but the handshake is still not complete,
+            // set the blocked status based on the current state
+            if self.state_machine.connection.state == ConnectionState::ClientHelloSent {
+                // Client is waiting for ServerHello
+                self.blocked_status = BlockedStatus::ReadBlocked;
+            } else if self.state_machine.connection.state == ConnectionState::ServerHelloSent {
+                // Server is sending encrypted extensions, certificate, etc.
+                self.blocked_status = BlockedStatus::WriteBlocked;
+            } else if self.state_machine.connection.state == ConnectionState::ServerFinishedSent {
+                // Server is waiting for client Finished
+                self.blocked_status = BlockedStatus::ReadBlocked;
+            } else if self.state_machine.connection.state == ConnectionState::ClientFinishedSent {
+                // Client has sent Finished, handshake should be complete
+                self.status = ConnectionStatus::Established;
+                self.blocked_status = BlockedStatus::NotBlocked;
+            } else if self.state_machine.connection.state == ConnectionState::HandshakeCompleted {
+                // Handshake is complete
+                self.status = ConnectionStatus::Established;
+                self.blocked_status = BlockedStatus::NotBlocked;
+            }
+        } else if self.is_established() {
+            // If we're established, decrypt the application data
+            // In a real implementation, we would decrypt the data here
+            // For now, we'll just leave it in the input buffer
+        }
         
         // Return the number of bytes processed
         Ok(data.len())

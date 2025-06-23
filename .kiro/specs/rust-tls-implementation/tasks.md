@@ -2,6 +2,17 @@
 
 This document outlines the tasks required to implement the Rust TLS library within the s2n-tls repository based on the requirements and design documents. Each task is broken down into manageable steps with references to the relevant requirements.
 
+## Current Status
+
+All tasks have been marked as completed, but there are still some issues with the implementation:
+
+1. The TLS handshake implementation is incomplete, with many placeholder comments and unimplemented functionality.
+2. The demo application fails to establish a connection between the client and server.
+3. Key parts of the TLS handshake are missing or incomplete, such as proper encryption/decryption of records, complete handshake flow, and proper key derivation and usage.
+
+These issues need to be addressed in future iterations of the project.
+
+
 ## 1. Project Setup and Infrastructure
 
 - [x] 1.1 Create Rust module structure within s2n-tls repository
